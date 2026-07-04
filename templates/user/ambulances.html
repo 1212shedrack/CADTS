@@ -149,8 +149,11 @@
 
   async function init() {
     // Init mini map
-    miniMap = L.map('mini-map', { zoomControl: false, attributionControl: false })
-      .setView([-6.7924, 39.2083], 12);
+    miniMap = L.map('mini-map', { 
+      zoomControl: false, 
+      attributionControl: false,
+      dragging: !L.Browser.mobile 
+    }).setView([-6.7924, 39.2083], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
     map = miniMap; // point global map to miniMap
 

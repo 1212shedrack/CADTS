@@ -154,8 +154,11 @@
 
   /* ── Init map ── */
   async function init() {
-    hospMap = L.map('hosp-map', { zoomControl:true })
-              .setView([-6.17, 35.73], 6); // Tanzania overview
+    hospMap = L.map('hosp-map', { 
+      zoomControl: true,
+      dragging: !L.Browser.mobile // Fixes page scroll issue on mobile
+    }).setView([-6.17, 35.73], 6); // Tanzania overview
+    
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:'© OpenStreetMap', maxZoom:19
     }).addTo(hospMap);

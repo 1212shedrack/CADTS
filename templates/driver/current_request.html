@@ -314,9 +314,10 @@
 
   function initTripMap(req) {
     if (!tripMap) {
-      tripMap = L.map('trip-map', { zoomControl: true }).setView(
-        [parseFloat(req.pickup_latitude), parseFloat(req.pickup_longitude)], 14
-      );
+      tripMap = L.map('trip-map', { 
+        zoomControl: true,
+        dragging: !L.Browser.mobile 
+      }).setView([parseFloat(req.pickup_latitude), parseFloat(req.pickup_longitude)], 14);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(tripMap);
       map = tripMap;
     }

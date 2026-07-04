@@ -323,7 +323,7 @@ a:hover { color: var(--primary); }
   flex-direction: column;
   position: fixed;
   top: 0; left: 0; bottom: 0;
-  z-index: 100;
+  z-index: 1000;
   transition: var(--transition);
 }
 .sidebar-brand {
@@ -569,7 +569,7 @@ tbody tr:last-child td { border-bottom: none; }
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
-  z-index: 99;
+  z-index: 999;
   backdrop-filter: blur(2px);
 }
 .sidebar-overlay.show { display: block; }
@@ -582,7 +582,7 @@ tbody tr:last-child td { border-bottom: none; }
   .sidebar {
     transform: translateX(-280px);
     width: 260px !important;
-    z-index: 200;
+    z-index: 1000;
   }
   .sidebar.open { transform: translateX(0); }
 

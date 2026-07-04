@@ -11,6 +11,7 @@ function initMap(centerLat = -6.7924, centerLng = 39.2083) {
     center: [centerLat, centerLng],
     zoom: 13,
     zoomControl: false,
+    dragging: !L.Browser.mobile // Fixes page scroll issue on mobile
   });
 
   // OpenStreetMap tiles

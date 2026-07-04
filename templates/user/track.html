@@ -257,8 +257,10 @@
 
   function updateMap(req) {
     if (!trackMap) {
-      trackMap = L.map('track-map', { zoomControl:true })
-        .setView([-6.7924, 39.2083], 13);
+      trackMap = L.map('track-map', { 
+        zoomControl: true,
+        dragging: !L.Browser.mobile 
+      }).setView([-6.7924, 39.2083], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(trackMap);
       map = trackMap;
     }
