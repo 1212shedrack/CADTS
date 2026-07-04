@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}User Dashboard{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text">
+        <h2>CADTS</h2>
+        <p>Dispatch System</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item active" href="/dashboard/user/" id="nav-home">
+        <span class="nav-icon material-icons-round">dashboard</span> Overview
+      </a>
+      <a class="nav-item" href="/dashboard/user/map/" id="nav-map">
+        <span class="nav-icon material-icons-round">map</span> Live Map
+      </a>
+
+      <div class="nav-section-label">Emergency</div>
+      <a class="nav-item" href="/dashboard/user/ambulances/" id="nav-ambulances">
+        <span class="nav-icon material-icons-round">emergency</span> Available Ambulances
+      </a>
+      <a class="nav-item" href="/dashboard/user/hospitals/" id="nav-hospitals">
+        <span class="nav-icon material-icons-round">local_hospital</span> Nearby Hospitals
+      </a>
+      <a class="nav-item" href="/dashboard/user/track/" id="nav-track">
+        <span class="nav-icon material-icons-round">location_on</span> Track Ambulance
+      </a>
+
+      <div class="nav-section-label">My Account</div>
+      <a class="nav-item" href="/dashboard/user/history/" id="nav-history">
+        <span class="nav-icon material-icons-round">history</span> Request History
+      </a>
+      <a class="nav-item" href="/dashboard/user/billing/" id="nav-billing">
+        <span class="nav-icon material-icons-round">receipt_long</span> Billing
+      </a>
+      <a class="nav-item" href="/dashboard/user/profile/" id="nav-profile">
+        <span class="nav-icon material-icons-round">manage_accounts</span> Profile
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="user-avatar">U</div>
+        <div class="sidebar-user-info">
+          <p id="sidebar-name">Loading…</p>
+          <p>Click to logout</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Overview</h1>
+        <p id="topbar-date">—</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="topbar-btn" title="Notifications" onclick="window.location.href='/dashboard/user/track/'">
+          <span class="material-icons-round">notifications</span>
+        </button>
+        <button class="topbar-btn" title="Emergency Request" id="sos-btn"
+                onclick="window.location.href='/dashboard/user/ambulances/'"
+                style="background:rgba(230,57,70,0.15); border-color:rgba(230,57,70,0.4); color:#f87171;">
+          <span class="material-icons-round">emergency</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="page-content">
+
+      <!-- Welcome Banner -->
+      <div class="welcome-banner" id="welcome-banner">
+        <div class="welcome-text">
+          <h2>Good <span id="greeting-time">morning</span>, <span id="welcome-name">there</span> 👋</h2>
+          <p>Stay safe. Help is always a tap away.</p>
+        </div>
+        <div class="welcome-icon">🚑</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon green">🚑</div>
+          <div>
+            <div class="stat-value" id="stat-available">—</div>
+            <div class="stat-label">Available Ambulances</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">📋</div>
+          <div>
+            <div class="stat-value" id="stat-requests">—</div>
+            <div class="stat-label">My Total Requests</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">🏥</div>
+          <div>
+            <div class="stat-value" id="stat-hospitals">—</div>
+            <div class="stat-label">Nearby Hospitals</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">💰</div>
+          <div>
+            <div class="stat-value" id="stat-spent">—</div>
+            <div class="stat-label">Total Spent (Tsh)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Request Alert -->
+      <div id="active-request-banner" style="display:none;
+           background:rgba(230,57,70,0.08); border:1px solid rgba(230,57,70,0.3);
+           border-radius:12px; padding:20px 24px; margin-bottom:24px;
+           display:none; align-items:center; gap:16px;">
+        <span class="material-icons-round" style="color:#f87171; font-size:28px;">local_shipping</span>
+        <div style="flex:1;">
+          <p style="color:#f1f1f1; font-weight:600; margin:0;">Active Ambulance Request</p>
+          <p style="margin:4px 0 0; font-size:0.85rem;" id="active-request-status">Ambulance is on the way…</p>
+        </div>
+        <a href="/dashboard/user/track/" class="btn btn-primary" style="width:auto; padding:10px 20px;">
+          <span class="material-icons-round" style="font-size:18px;">location_on</span> Track
+        </a>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+
+        <!-- Recent Requests -->
+        <div class="table-card">
+          <div class="table-header">
+            <h3>Recent Requests</h3>
+            <a href="/dashboard/user/history/"
+               style="font-size:0.8rem; color:var(--primary-light);">View all →</a>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Ambulance</th>
+                  <th>Status</th>
+                  <th>Cost</th>
+                </tr>
+              </thead>
+              <tbody id="recent-requests">
+                <tr>
+                  <td colspan="4" style="text-align:center; padding:32px; color:var(--text-muted);">
+                    <span class="material-icons-round" style="font-size:36px; display:block; margin-bottom:8px;">inbox</span>
+                    No requests yet
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="table-card" style="padding:24px;">
+            <h3 style="margin-bottom:20px; font-size:1rem;">Quick Actions</h3>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <a href="/dashboard/user/ambulances/" class="quick-action-btn" id="qa-request">
+                <span class="material-icons-round">emergency</span>
+                <div>
+                  <strong>Request Ambulance</strong>
+                  <p>Find and request a nearby ambulance</p>
+                </div>
+                <span class="material-icons-round arrow">chevron_right</span>
+              </a>
+              <a href="/dashboard/user/map/" class="quick-action-btn" id="qa-map">
+                <span class="material-icons-round">map</span>
+                <div>
+                  <strong>Open Live Map</strong>
+                  <p>View ambulances near you</p>
+                </div>
+                <span class="material-icons-round arrow">chevron_right</span>
+              </a>
+              <a href="/dashboard/user/hospitals/" class="quick-action-btn" id="qa-hospitals">
+                <span class="material-icons-round">local_hospital</span>
+                <div>
+                  <strong>Find Hospitals</strong>
+                  <p>Locate nearby hospitals</p>
+                </div>
+                <span class="material-icons-round arrow">chevron_right</span>
+              </a>
+              <a href="/dashboard/user/billing/" class="quick-action-btn" id="qa-billing">
+                <span class="material-icons-round">receipt_long</span>
+                <div>
+                  <strong>View Billing</strong>
+                  <p>Check your payment history</p>
+                </div>
+                <span class="material-icons-round arrow">chevron_right</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .welcome-banner {
+    background: linear-gradient(135deg, rgba(230,57,70,0.12), rgba(69,123,157,0.08));
+    border: 1px solid rgba(230,57,70,0.2);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideUp 0.5s ease;
+  }
+  .welcome-banner h2 { font-size: 1.5rem; margin-bottom: 4px; }
+  .welcome-icon { font-size: 56px; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
+  }
+
+  .quick-action-btn {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition);
+  }
+  .quick-action-btn:hover {
+    background: rgba(230,57,70,0.08);
+    border-color: rgba(230,57,70,0.3);
+    transform: translateX(4px);
+    color: var(--text-primary);
+  }
+  .quick-action-btn .material-icons-round:first-child {
+    color: var(--primary-light); font-size: 22px; flex-shrink: 0;
+  }
+  .quick-action-btn div { flex: 1; }
+  .quick-action-btn strong { display: block; font-size: 0.9rem; }
+  .quick-action-btn p { font-size: 0.78rem; color: var(--text-muted); margin: 2px 0 0; }
+  .quick-action-btn .arrow { color: var(--text-muted); font-size: 20px; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  // Auth guard — only users allowed
+  API.requireAuth('user');
+
+  // Set greeting and name
+  function init() {
+    const name = API.getName() || 'there';
+    document.getElementById('welcome-name').textContent = name.split(' ')[0];
+    document.getElementById('sidebar-name').textContent = name;
+    document.getElementById('user-avatar').textContent  = name.charAt(0).toUpperCase();
+
+    const h = new Date().getHours();
+    const greeting = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+    document.getElementById('greeting-time').textContent = greeting;
+
+    const now = new Date();
+    document.getElementById('topbar-date').textContent = now.toLocaleDateString('en-US', {
+      weekday:'long', year:'numeric', month:'long', day:'numeric'
+    });
+  }
+
+  // Load stats
+  async function loadStats() {
+    try {
+      // Available ambulances
+      const ambRes = await API.request('/api/ambulances/?status=available');
+      if (ambRes?.ok) {
+        const data = await ambRes.json();
+        const count = Array.isArray(data) ? data.length : (data.count ?? 0);
+        document.getElementById('stat-available').textContent = count;
+      } else {
+        document.getElementById('stat-available').textContent = '—';
+      }
+    } catch(e) {
+      document.getElementById('stat-available').textContent = '—';
+    }
+
+    try {
+      // My requests
+      const reqRes = await API.request('/api/requests/my/');
+      if (reqRes?.ok) {
+        const data = await reqRes.json();
+        const list  = Array.isArray(data) ? data : (data.results ?? []);
+        document.getElementById('stat-requests').textContent = list.length;
+
+        // Recent requests table
+        if (list.length > 0) {
+          const recent = list.slice(0, 5);
+          const tbody  = document.getElementById('recent-requests');
+          tbody.innerHTML = recent.map(r => `
+            <tr>
+              <td>${new Date(r.created_at).toLocaleDateString()}</td>
+              <td>${r.ambulance_name || '—'}</td>
+              <td><span class="badge badge-${r.status.toLowerCase()}">${r.status}</span></td>
+              <td>${r.total_cost ? 'Tsh ' + Number(r.total_cost).toLocaleString() : '—'}</td>
+            </tr>
+          `).join('');
+        }
+
+        // Total spent
+        const spent = list.reduce((sum, r) => sum + (parseFloat(r.total_cost) || 0), 0);
+        document.getElementById('stat-spent').textContent =
+          spent > 0 ? spent.toLocaleString() : '0';
+
+        // Active request banner
+        const active = list.find(r => ['pending','accepted','busy','arrived','patient_picked'].includes(r.status?.toLowerCase()));
+        if (active) {
+          const banner = document.getElementById('active-request-banner');
+          banner.style.display = 'flex';
+          document.getElementById('active-request-status').textContent =
+            `Status: ${active.status} — Tap Track to follow your ambulance.`;
+        }
+      } else {
+        document.getElementById('stat-requests').textContent = '0';
+        document.getElementById('stat-spent').textContent = '0';
+      }
+    } catch(e) {
+      document.getElementById('stat-requests').textContent = '—';
+    }
+
+    // Nearby hospitals (static placeholder until map module)
+    document.getElementById('stat-hospitals').textContent = 'Live';
+  }
+
+  init();
+  loadStats();
+</script>
+{% endblock %}

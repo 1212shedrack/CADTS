@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Admin — All Requests{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item" href="/dashboard/admin/"><span class="nav-icon material-icons-round">dashboard</span>Dashboard</a>
+      <div class="nav-section-label">Management</div>
+      <a class="nav-item" href="/dashboard/admin/users/"><span class="nav-icon material-icons-round">group</span>Users</a>
+      <a class="nav-item" href="/dashboard/admin/drivers/"><span class="nav-icon material-icons-round">badge</span>Drivers</a>
+      <a class="nav-item" href="/dashboard/admin/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Ambulances</a>
+      <div class="nav-section-label">Operations</div>
+      <a class="nav-item active" href="/dashboard/admin/requests/"><span class="nav-icon material-icons-round">assignment</span>All Requests</a>
+      <a class="nav-item" href="/dashboard/admin/reports/"><span class="nav-icon material-icons-round">bar_chart</span>Reports</a>
+      <div class="nav-section-label">System</div>
+      <a class="nav-item" href="/dashboard/admin/settings/"><span class="nav-icon material-icons-round">settings</span>Settings</a>
+      <a class="nav-item" href="/admin/"><span class="nav-icon material-icons-round">admin_panel_settings</span>Django Admin</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar">A</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Administrator</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>All Requests</h1>
+        <p>Monitor and manage all ambulance requests in the system</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="loadRequests()" title="Refresh">
+          <span class="material-icons-round">refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:24px;">
+        <div class="stat-card"><div class="stat-icon amber">⏳</div><div><div class="stat-value" id="s-pending">—</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">🔵</div><div><div class="stat-value" id="s-active">—</div><div class="stat-label">Active</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="s-completed">—</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="s-rejected">—</div><div class="stat-label">Rejected</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total</div></div></div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="filter-tab active" onclick="filterBy('all',this)">All</button>
+        <button class="filter-tab" onclick="filterBy('pending',this)">⏳ Pending</button>
+        <button class="filter-tab" onclick="filterBy('accepted',this)">🔵 Accepted</button>
+        <button class="filter-tab" onclick="filterBy('completed',this)">✅ Completed</button>
+        <button class="filter-tab" onclick="filterBy('rejected',this)">❌ Rejected</button>
+        <button class="filter-tab" onclick="filterBy('cancelled',this)">🚫 Cancelled</button>
+      </div>
+
+      <!-- Search -->
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <div style="flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;
+                    padding:10px 16px;display:flex;align-items:center;gap:8px;">
+          <span class="material-icons-round" style="color:var(--text-muted);font-size:18px;">search</span>
+          <input type="text" id="search-input" placeholder="Search by user or ambulance…"
+                 style="flex:1;background:none;border:none;outline:none;color:var(--text-primary);font-size:0.875rem;font-family:inherit;"
+                 oninput="searchRequests(this.value)"/>
+        </div>
+      </div>
+
+      <div class="alert" id="page-alert"></div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Request Log</h3>
+          <span style="font-size:0.82rem;color:var(--text-muted);" id="showing-count"></span>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>User</th><th>Ambulance</th><th>Status</th>
+                <th>Distance</th><th>Cost (Tsh)</th><th>Date</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="requests-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">
+                Loading…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+              padding:32px;width:100%;max-width:480px;margin:24px;animation:slideUp .3s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <h3>Request Details</h3>
+      <button onclick="document.getElementById('detail-modal').style.display='none'"
+              class="material-icons-round"
+              style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;">close</button>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filter-tab {
+    padding:7px 16px;border-radius:999px;border:1px solid var(--border);
+    background:var(--bg-glass);color:var(--text-muted);
+    font-size:0.82rem;font-weight:500;cursor:pointer;transition:var(--transition);
+  }
+  .filter-tab.active,.filter-tab:hover {
+    background:rgba(230,57,70,0.12);border-color:rgba(230,57,70,0.4);color:var(--primary-light);
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('admin');
+  document.getElementById('sidebar-name').textContent = API.getName() || 'Administrator';
+
+  let allRequests = [], currentFilter = 'all', searchQ = '';
+
+  const STATUS_COLORS = {
+    pending:'#f59e0b', accepted:'#3b82f6', arrived:'#8b5cf6',
+    patient_picked:'#f59e0b', completed:'#10b981', rejected:'#ef4444', cancelled:'#6b7280',
+  };
+
+  async function loadRequests() {
+    const res = await API.request('/api/admin/requests/');
+    if (!res?.ok) return;
+    allRequests = await res.json();
+    updateStats(allRequests);
+    renderTable(applyFilters());
+  }
+
+  function updateStats(list) {
+    document.getElementById('s-pending').textContent   = list.filter(r=>r.status==='pending').length;
+    document.getElementById('s-active').textContent    = list.filter(r=>['accepted','arrived','patient_picked'].includes(r.status)).length;
+    document.getElementById('s-completed').textContent = list.filter(r=>r.status==='completed').length;
+    document.getElementById('s-rejected').textContent  = list.filter(r=>r.status==='rejected').length;
+    document.getElementById('s-total').textContent     = list.length;
+  }
+
+  function filterBy(status, btn) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable(applyFilters());
+  }
+
+  function searchRequests(q) {
+    searchQ = q.toLowerCase();
+    renderTable(applyFilters());
+  }
+
+  function applyFilters() {
+    let list = [...allRequests];
+    if (currentFilter !== 'all') {
+      const activeStatuses = ['accepted','arrived','patient_picked'];
+      list = currentFilter === 'accepted'
+        ? list.filter(r=>activeStatuses.includes(r.status))
+        : list.filter(r=>r.status===currentFilter);
+    }
+    if (searchQ) {
+      list = list.filter(r=>
+        (r.user_name||'').toLowerCase().includes(searchQ)||
+        (r.ambulance_name||'').toLowerCase().includes(searchQ)
+      );
+    }
+    return list;
+  }
+
+  function renderTable(list) {
+    document.getElementById('showing-count').textContent = `${list.length} record(s)`;
+    const tbody = document.getElementById('requests-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">
+        <span class="material-icons-round" style="font-size:36px;display:block;margin-bottom:8px;">inbox</span>
+        No requests found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(r => {
+      const color = STATUS_COLORS[r.status] || '#6b7280';
+      return `
+      <tr>
+        <td style="color:var(--text-muted);">#${r.id}</td>
+        <td style="font-weight:600;">${r.user_name||'—'}</td>
+        <td>${r.ambulance_name||'—'}</td>
+        <td><span style="background:${color}22;color:${color};padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;">
+          ${r.status.replace('_',' ')}
+        </span></td>
+        <td>${r.distance?r.distance+' km':'—'}</td>
+        <td>${r.total_cost?'Tsh '+Number(r.total_cost).toLocaleString():'—'}</td>
+        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+        <td>
+          <button onclick="showDetail(${r.id})"
+                  style="background:var(--bg-glass);border:1px solid var(--border);border-radius:6px;
+                         padding:5px 12px;color:var(--text-secondary);font-size:0.78rem;cursor:pointer;">
+            View
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function showDetail(id) {
+    const r = allRequests.find(x=>x.id===id);
+    if (!r) return;
+    const color = STATUS_COLORS[r.status] || '#6b7280';
+    document.getElementById('detail-content').innerHTML = `
+      <div style="text-align:center;margin-bottom:20px;">
+        <span style="background:${color}22;color:${color};padding:4px 16px;border-radius:999px;font-size:0.85rem;font-weight:600;">
+          ${r.status.replace('_',' ')}
+        </span>
+      </div>
+      ${drow('Request #', r.id)}
+      ${drow('User', r.user_name||'—')}
+      ${drow('Ambulance', r.ambulance_name||'—')}
+      ${drow('Pickup Coords', r.pickup_latitude?`${parseFloat(r.pickup_latitude).toFixed(5)}, ${parseFloat(r.pickup_longitude).toFixed(5)}`:'—')}
+      ${drow('Destination', r.destination_hospital||'—')}
+      ${drow('Notes', r.notes||'—')}
+      ${r.distance?drow('Distance', r.distance+' km'):''}
+      ${r.total_cost?drow('Total Cost','Tsh '+Number(r.total_cost).toLocaleString(),true):''}
+      ${drow('Created', new Date(r.created_at).toLocaleString())}
+    `;
+    document.getElementById('detail-modal').style.display = 'flex';
+  }
+
+  function drow(label, value, highlight=false) {
+    return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="color:var(--text-muted);font-size:0.875rem;">${label}</span>
+      <span style="font-weight:600;${highlight?'color:var(--primary-light);font-size:1rem;':''}">${value}</span>
+    </div>`;
+  }
+
+  loadRequests();
+  setInterval(loadRequests, 30000);
+</script>
+{% endblock %}

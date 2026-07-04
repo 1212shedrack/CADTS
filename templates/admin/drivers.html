@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Driver Management{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item" href="/dashboard/admin/"><span class="nav-icon material-icons-round">dashboard</span>Dashboard</a>
+      <div class="nav-section-label">Management</div>
+      <a class="nav-item" href="/dashboard/admin/users/"><span class="nav-icon material-icons-round">group</span>Users</a>
+      <a class="nav-item active" href="/dashboard/admin/drivers/"><span class="nav-icon material-icons-round">badge</span>Drivers</a>
+      <a class="nav-item" href="/dashboard/admin/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Ambulances</a>
+      <div class="nav-section-label">Operations</div>
+      <a class="nav-item" href="/dashboard/admin/requests/"><span class="nav-icon material-icons-round">assignment</span>All Requests</a>
+      <a class="nav-item" href="/dashboard/admin/reports/"><span class="nav-icon material-icons-round">bar_chart</span>Reports</a>
+      <div class="nav-section-label">System</div>
+      <a class="nav-item" href="/dashboard/admin/settings/"><span class="nav-icon material-icons-round">settings</span>Settings</a>
+      <a class="nav-item" href="/admin/"><span class="nav-icon material-icons-round">admin_panel_settings</span>Django Admin</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar">A</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Administrator</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Driver Management</h1>
+        <p>Approve, activate, or deactivate registered drivers</p>
+      </div>
+      <div class="topbar-actions">
+        <div id="pending-pill" style="display:none;
+             background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3);
+             border-radius:999px; padding:6px 14px;
+             font-size:0.82rem; font-weight:600; color:#fcd34d;
+             display:flex; align-items:center; gap:6px;">
+          <span class="material-icons-round" style="font-size:16px;">pending</span>
+          <span id="pending-count">0</span> Pending
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Filter Tabs -->
+      <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+        <button class="filter-tab active" onclick="filterDrivers('all', this)" id="tab-all">All Drivers</button>
+        <button class="filter-tab" onclick="filterDrivers('pending', this)" id="tab-pending">⏳ Pending Approval</button>
+        <button class="filter-tab" onclick="filterDrivers('approved', this)" id="tab-approved">✅ Approved</button>
+        <button class="filter-tab" onclick="filterDrivers('inactive', this)" id="tab-inactive">🚫 Inactive</button>
+      </div>
+
+      <div class="alert" id="page-alert"></div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Registered Drivers</h3>
+          <input type="text" id="search-input" placeholder="🔍 Search name or email…"
+                 style="background:var(--bg-input);border:1px solid var(--border);
+                        border-radius:8px;padding:8px 14px;color:var(--text-primary);
+                        font-size:0.85rem;outline:none;width:240px;"
+                 oninput="searchDrivers(this.value)"/>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Name</th><th>Email</th><th>Phone</th>
+                <th>License No.</th><th>Approval</th><th>Status</th><th>Registered</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="drivers-tbody">
+              <tr><td colspan="9" style="text-align:center;padding:48px;color:var(--text-muted);">
+                <span class="material-icons-round" style="font-size:40px;display:block;margin-bottom:10px;">badge</span>
+                Loading drivers…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filter-tab {
+    padding:8px 18px; border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--bg-glass); color:var(--text-secondary);
+    font-size:0.83rem; font-weight:500; cursor:pointer;
+    transition:var(--transition);
+  }
+  .filter-tab.active, .filter-tab:hover {
+    background:rgba(230,57,70,0.12);
+    border-color:rgba(230,57,70,0.4);
+    color:var(--primary-light);
+  }
+  .action-btn {
+    background:var(--bg-glass); border:1px solid var(--border);
+    border-radius:6px; padding:5px 10px; cursor:pointer;
+    color:var(--text-secondary); font-size:0.78rem;
+    transition:var(--transition); display:inline-flex; align-items:center; gap:4px;
+  }
+  .action-btn:hover   { border-color:var(--primary); color:var(--primary-light); }
+  .action-btn.success { border-color:rgba(16,185,129,0.4); color:#34d399; }
+  .action-btn.danger  { border-color:rgba(239,68,68,0.4);  color:#f87171; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('admin');
+  document.getElementById('sidebar-name').textContent = API.getName() || 'Administrator';
+
+  let allDrivers   = [];
+  let currentFilter = 'all';
+  let searchQuery   = '';
+
+  async function loadDrivers() {
+    const res = await API.request('/api/drivers/');
+    if (!res?.ok) return;
+    allDrivers = await res.json();
+
+    const pending = allDrivers.filter(d => !d.is_approved).length;
+    if (pending > 0) {
+      document.getElementById('pending-pill').style.display = 'flex';
+      document.getElementById('pending-count').textContent  = pending;
+    }
+    renderDrivers();
+  }
+
+  function filterDrivers(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderDrivers();
+  }
+
+  function searchDrivers(q) {
+    searchQuery = q.toLowerCase();
+    renderDrivers();
+  }
+
+  function renderDrivers() {
+    let list = [...allDrivers];
+
+    if (currentFilter === 'pending')  list = list.filter(d => !d.is_approved);
+    if (currentFilter === 'approved') list = list.filter(d => d.is_approved && d.is_active);
+    if (currentFilter === 'inactive') list = list.filter(d => !d.is_active);
+
+    if (searchQuery) {
+      list = list.filter(d =>
+        d.full_name.toLowerCase().includes(searchQuery) ||
+        d.email.toLowerCase().includes(searchQuery)
+      );
+    }
+
+    const tbody = document.getElementById('drivers-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:48px;color:var(--text-muted);">
+        <span class="material-icons-round" style="font-size:40px;display:block;margin-bottom:10px;">person_search</span>
+        No drivers found
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(d => `
+      <tr>
+        <td style="color:var(--text-muted);">#${d.id}</td>
+        <td style="font-weight:600;color:var(--text-primary);">${d.full_name}</td>
+        <td>${d.email}</td>
+        <td>${d.phone || '—'}</td>
+        <td><code style="font-size:0.8rem;background:var(--bg-glass);padding:2px 8px;border-radius:4px;">${d.license_number}</code></td>
+        <td>${d.is_approved
+              ? '<span class="badge badge-available">Approved</span>'
+              : '<span class="badge badge-pending">Pending</span>'}</td>
+        <td>${d.is_active
+              ? '<span class="badge badge-active">Active</span>'
+              : '<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString()}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${!d.is_approved ? `
+            <button class="action-btn success" onclick="driverAction(${d.id},'approve')">
+              <span class="material-icons-round" style="font-size:14px;">check_circle</span> Approve
+            </button>` : ''}
+          ${d.is_active ? `
+            <button class="action-btn danger" onclick="driverAction(${d.id},'deactivate')">
+              <span class="material-icons-round" style="font-size:14px;">block</span> Deactivate
+            </button>` : `
+            <button class="action-btn" onclick="driverAction(${d.id},'activate')">
+              <span class="material-icons-round" style="font-size:14px;">play_circle</span> Activate
+            </button>`}
+        </td>
+      </tr>`).join('');
+  }
+
+  async function driverAction(id, action) {
+    const labels = { approve:'approve', deactivate:'deactivate', activate:'activate' };
+    const d = allDrivers.find(x => x.id === id);
+    if (!d) return;
+    if (!confirm(`${action.charAt(0).toUpperCase()+action.slice(1)} driver "${d.full_name}"?`)) return;
+
+    const res = await API.request(`/api/drivers/${id}/approve/`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showPageAlert(data.message, 'success');
+      loadDrivers();
+    } else {
+      showPageAlert(data.error || 'Action failed.', 'error');
+    }
+  }
+
+  function showPageAlert(msg, type) {
+    const el = document.getElementById('page-alert');
+    el.className = `alert alert-${type} show`;
+    el.textContent = msg;
+    setTimeout(() => el.className = 'alert', 4000);
+  }
+
+  loadDrivers();
+</script>
+{% endblock %}

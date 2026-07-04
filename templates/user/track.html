@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Track Ambulance{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  body { overflow:hidden; }
+  .track-layout { display:flex; height:100vh; }
+
+  /* Status Steps */
+  .step-row {
+    display:flex; align-items:center; gap:14px;
+    padding:14px 0; border-bottom:1px solid var(--border);
+  }
+  .step-row:last-child { border-bottom:none; }
+  .step-bubble {
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex-shrink:0;
+  }
+  .step-bubble.done    { background:rgba(16,185,129,0.2); }
+  .step-bubble.current { background:rgba(230,57,70,0.2); animation:pulse 1.5s infinite; }
+  .step-bubble.pending { background:var(--bg-glass); }
+
+  @keyframes carMove {
+    0%   { transform:translateX(-4px); }
+    100% { transform:translateX(4px); }
+  }
+  .car-anim { animation:carMove 0.8s ease-in-out infinite alternate; display:inline-block; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="track-layout">
+
+  <!-- Left Panel -->
+  <div style="width:360px;background:var(--bg-card);border-right:1px solid var(--border);
+              display:flex;flex-direction:column;z-index:10;flex-shrink:0;overflow-y:auto;">
+
+    <!-- Header -->
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);
+                display:flex;align-items:center;gap:12px;">
+      <a href="/dashboard/user/" style="color:var(--text-muted);display:flex;align-items:center;">
+        <span class="material-icons-round">arrow_back</span>
+      </a>
+      <h2 style="font-size:1rem;flex:1;">📍 Track Ambulance</h2>
+      <button onclick="refreshStatus()" title="Refresh"
+              style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
+        <span class="material-icons-round">refresh</span>
+      </button>
+    </div>
+
+    <div style="padding:20px;flex:1;">
+
+      <!-- No active request -->
+      <div id="no-request" style="text-align:center;padding:48px 0;">
+        <div style="font-size:52px;margin-bottom:12px;">✅</div>
+        <p style="font-weight:700;margin-bottom:6px;">No Active Request</p>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px;">
+          You don't have an ambulance on the way.
+        </p>
+        <a href="/dashboard/user/ambulances/" class="btn btn-primary"
+           style="color:#fff;text-decoration:none;width:auto;display:inline-block;padding:10px 20px;">
+          Request Ambulance
+        </a>
+      </div>
+
+      <!-- Active tracking -->
+      <div id="active-track" style="display:none;">
+
+        <!-- Status Banner -->
+        <div id="status-banner" style="border-radius:12px;padding:16px 20px;
+             margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+          <span style="font-size:28px;" id="status-icon">🚑</span>
+          <div>
+            <p style="font-weight:700;font-size:0.95rem;margin:0;" id="status-title">—</p>
+            <p style="font-size:0.8rem;margin:3px 0 0;opacity:0.8;" id="status-subtitle">—</p>
+          </div>
+        </div>
+
+        <!-- Request Info -->
+        <div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;
+                    padding:16px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:0.82rem;color:var(--text-muted);">Request #</span>
+            <span id="req-id" style="font-weight:600;">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:0.82rem;color:var(--text-muted);">Ambulance</span>
+            <span id="req-amb" style="font-weight:600;">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:0.82rem;color:var(--text-muted);">Last updated</span>
+            <span id="req-updated" style="font-weight:600;">—</span>
+          </div>
+        </div>
+
+        <!-- Progress Steps -->
+        <h4 style="font-size:0.875rem;margin-bottom:4px;">Trip Progress</h4>
+        <div id="track-steps" style="margin-bottom:20px;"></div>
+
+        <!-- Cancel Button (only when pending) -->
+        <div id="cancel-section"></div>
+
+        <!-- Cost Estimate -->
+        <div id="cost-section" style="display:none;
+             background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);
+             border-radius:12px;padding:16px;text-align:center;">
+          <p style="color:#34d399;font-weight:700;font-size:1.1rem;margin:0 0 4px;" id="cost-value">—</p>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">Total trip cost</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div style="flex:1;position:relative;">
+    <div id="track-map" style="width:100%;height:100%;"></div>
+
+    <!-- ETA Chip -->
+    <div id="eta-chip" style="display:none;position:absolute;top:16px;left:50%;
+         transform:translateX(-50%);z-index:20;
+         background:var(--bg-card);border:1px solid rgba(230,57,70,0.4);
+         border-radius:999px;padding:10px 24px;
+         display:flex;align-items:center;gap:10px;
+         box-shadow:0 4px 16px rgba(0,0,0,0.3);">
+      <span class="car-anim" style="font-size:20px;">🚑</span>
+      <span style="font-weight:700;color:var(--text-primary);" id="eta-text">Calculating…</span>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/api.js' %}"></script>
+<script src="{% static 'js/map.js' %}"></script>
+<script src="{% static 'js/tracking.js' %}"></script>
+<script>
+  API.requireAuth('user');
+
+  let trackMap, activeRequest = null, ambulanceMarker = null;
+
+  const STEPS = [
+    { key:'pending',        label:'Request Sent',       desc:'Waiting for driver to accept' },
+    { key:'accepted',       label:'Driver Accepted',    desc:'Ambulance is heading to you' },
+    { key:'arrived',        label:'Ambulance Arrived',  desc:'Ambulance reached your location' },
+    { key:'patient_picked', label:'You are On Board',   desc:'En route to hospital' },
+    { key:'completed',      label:'Trip Completed',     desc:'You have arrived safely' },
+  ];
+  const STATUS_ORDER = ['pending','accepted','arrived','patient_picked','completed'];
+
+  const STATUS_CONFIG = {
+    pending:        { icon:'⏳', title:'Waiting for Driver', sub:'Your request is being reviewed', bg:'rgba(245,158,11,0.1)', border:'rgba(245,158,11,0.3)', color:'#fcd34d' },
+    accepted:       { icon:'🚑', title:'Ambulance On the Way!', sub:'Driver is heading to your location', bg:'rgba(59,130,246,0.1)', border:'rgba(59,130,246,0.3)', color:'#93c5fd' },
+    arrived:        { icon:'📍', title:'Ambulance Arrived!', sub:'The ambulance is at your location', bg:'rgba(139,92,246,0.1)', border:'rgba(139,92,246,0.3)', color:'#c4b5fd' },
+    patient_picked: { icon:'🏥', title:'En Route to Hospital', sub:'You are on board', bg:'rgba(245,158,11,0.1)', border:'rgba(245,158,11,0.3)', color:'#fcd34d' },
+    completed:      { icon:'✅', title:'Trip Completed!', sub:'You have arrived safely', bg:'rgba(16,185,129,0.1)', border:'rgba(16,185,129,0.3)', color:'#34d399' },
+    rejected:       { icon:'❌', title:'Request Rejected', sub:'The driver rejected your request', bg:'rgba(239,68,68,0.1)', border:'rgba(239,68,68,0.3)', color:'#f87171' },
+    cancelled:      { icon:'🚫', title:'Request Cancelled', sub:'This request was cancelled', bg:'rgba(107,114,128,0.1)', border:'rgba(107,114,128,0.3)', color:'#9ca3af' },
+  };
+
+  async function refreshStatus() {
+    const res = await API.request('/api/requests/my/');
+    if (!res?.ok) return;
+    const all = await res.json();
+
+    const active = all.find(r => ['pending','accepted','arrived','patient_picked'].includes(r.status));
+    const lastCompleted = all.find(r => r.status === 'completed');
+
+    if (!active && !lastCompleted) {
+      document.getElementById('no-request').style.display = '';
+      document.getElementById('active-track').style.display = 'none';
+      document.getElementById('eta-chip').style.display = 'none';
+      return;
+    }
+
+    const req = active || lastCompleted;
+    activeRequest = req;
+
+    document.getElementById('no-request').style.display   = 'none';
+    document.getElementById('active-track').style.display = '';
+
+    updateStatus(req);
+  }
+
+  function updateStatus(req) {
+    const cfg = STATUS_CONFIG[req.status] || {};
+
+    // Banner
+    const banner = document.getElementById('status-banner');
+    banner.style.background   = cfg.bg     || 'var(--bg-glass)';
+    banner.style.border       = `1px solid ${cfg.border || 'var(--border)'}`;
+    banner.style.color        = cfg.color  || 'var(--text-primary)';
+    document.getElementById('status-icon').textContent    = cfg.icon  || '🚑';
+    document.getElementById('status-title').textContent   = cfg.title || req.status;
+    document.getElementById('status-subtitle').textContent= cfg.sub   || '';
+
+    // Info
+    document.getElementById('req-id').textContent      = `#${req.id}`;
+    document.getElementById('req-amb').textContent     = req.ambulance_name || '—';
+    document.getElementById('req-updated').textContent =
+      new Date(req.updated_at).toLocaleTimeString();
+
+    // Steps
+    const currentIdx = STATUS_ORDER.indexOf(req.status);
+    document.getElementById('track-steps').innerHTML = STEPS.map((s, i) => {
+      const isDone   = i < currentIdx || req.status === 'completed';
+      const isCur    = i === currentIdx && req.status !== 'completed';
+      return `<div class="step-row">
+        <div class="step-bubble ${isDone?'done':isCur?'current':'pending'}">
+          ${isDone ? '✅' : isCur ? '🔵' : '⬜'}
+        </div>
+        <div>
+          <p style="font-weight:${isCur?700:500};margin:0;color:${isCur?'var(--primary-light)':isDone?'#34d399':'var(--text-muted)'};">
+            ${s.label}
+          </p>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;">${s.desc}</p>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Cancel button (only for pending)
+    document.getElementById('cancel-section').innerHTML = req.status === 'pending' ? `
+      <button onclick="cancelRequest(${req.id})" class="btn btn-outline"
+              style="border-color:rgba(239,68,68,0.4);color:#f87171;margin-bottom:16px;">
+        🚫 Cancel Request
+      </button>` : '';
+
+    // Cost (completed)
+    if (req.status === 'completed' && req.total_cost) {
+      document.getElementById('cost-section').style.display = '';
+      document.getElementById('cost-value').textContent = `Tsh ${Number(req.total_cost).toLocaleString()}`;
+    }
+
+    // ETA chip for active
+    if (['accepted','arrived','patient_picked'].includes(req.status)) {
+      document.getElementById('eta-chip').style.display = 'flex';
+      document.getElementById('eta-text').textContent =
+        req.status === 'accepted' ? '🚑 Ambulance is on the way…'
+        : req.status === 'arrived' ? '📍 Ambulance has arrived!'
+        : '🏥 En route to hospital…';
+    } else {
+      document.getElementById('eta-chip').style.display = 'none';
+    }
+
+    updateMap(req);
+  }
+
+  async function cancelRequest(id) {
+    if (!confirm('Cancel this request?')) return;
+    const res = await API.request(`/api/requests/${id}/cancel/`, {method:'POST'});
+    if (res?.ok) refreshStatus();
+  }
+
+  function updateMap(req) {
+    if (!trackMap) {
+      trackMap = L.map('track-map', { zoomControl:true })
+        .setView([-6.7924, 39.2083], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(trackMap);
+      map = trackMap;
+    }
+
+    // User pickup location
+    if (req.pickup_latitude && req.pickup_longitude) {
+      const pLat = parseFloat(req.pickup_latitude);
+      const pLng = parseFloat(req.pickup_longitude);
+      L.marker([pLat, pLng], {
+        icon: L.divIcon({
+          className:'',
+          html:`<div style="background:#3b82f6;border:3px solid #fff;border-radius:50%;
+                     width:20px;height:20px;box-shadow:0 0 0 4px rgba(59,130,246,0.3);"></div>`,
+          iconSize:[20,20], iconAnchor:[10,10],
+        })
+      }).addTo(trackMap).bindPopup('📍 Your Pickup Location');
+      trackMap.setView([pLat, pLng], 14);
+    }
+
+    // Ambulance location from DB snapshot (fallback before WebSocket kicks in)
+    if (req.ambulance_latitude && req.ambulance_longitude) {
+      moveAmbulanceMarker(
+        parseFloat(req.ambulance_latitude),
+        parseFloat(req.ambulance_longitude),
+        req.ambulance_name
+      );
+    }
+
+    // Connect WebSocket for live tracking when ambulance is active
+    if (['accepted','arrived','patient_picked'].includes(req.status) && req.ambulance) {
+      connectLiveTracking(req.ambulance, req.id);
+    }
+  }
+
+  // ── WebSocket Live Tracking ───────────────────────────────────────────────
+  let wsAmbulanceId = null;
+
+  function connectLiveTracking(ambulanceId, requestId) {
+    // Don't re-connect if already watching this ambulance
+    if (wsAmbulanceId === ambulanceId) return;
+    wsAmbulanceId = ambulanceId;
+
+    TrackingClient.connectAsUser(
+      ambulanceId,
+      // onLocation: smoothly move the ambulance marker
+      (lat, lng, timestamp) => {
+        moveAmbulanceMarker(lat, lng, null);
+        document.getElementById('req-updated').textContent =
+          new Date(timestamp || Date.now()).toLocaleTimeString();
+      },
+      // onStatus: sync status immediately without waiting for poll
+      (status, reqId) => {
+        if (reqId == requestId || !reqId) {
+          refreshStatus();
+        }
+      }
+    );
+  }
+
+  function moveAmbulanceMarker(lat, lng, name) {
+    if (!trackMap) return;
+    const ambIcon = L.divIcon({
+      className: '',
+      html: `<div style="background:#e63946;border:3px solid #fff;border-radius:50%;
+                   width:28px;height:28px;display:flex;align-items:center;
+                   justify-content:center;font-size:14px;
+                   box-shadow:0 0 0 6px rgba(230,57,70,0.2),0 2px 8px rgba(0,0,0,0.4);
+                   animation:pulse 2s infinite;">🚑</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    });
+
+    if (ambulanceMarker) {
+      // Smooth pan to new position
+      ambulanceMarker.setLatLng([lat, lng]);
+    } else {
+      ambulanceMarker = L.marker([lat, lng], { icon: ambIcon })
+        .addTo(trackMap)
+        .bindPopup(`🚑 ${name || 'Ambulance'}`);
+    }
+
+    // Gently pan map to keep ambulance visible
+    if (!trackMap.getBounds().contains([lat, lng])) {
+      trackMap.panTo([lat, lng], { animate: true, duration: 1 });
+    }
+  }
+
+  refreshStatus();
+  // Fallback HTTP poll every 15 seconds (WebSocket is primary)
+  setInterval(refreshStatus, 15000);
+</script>
+{% endblock %}

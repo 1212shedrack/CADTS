@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Reports{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item" href="/dashboard/admin/"><span class="nav-icon material-icons-round">dashboard</span>Dashboard</a>
+      <div class="nav-section-label">Management</div>
+      <a class="nav-item" href="/dashboard/admin/users/"><span class="nav-icon material-icons-round">group</span>Users</a>
+      <a class="nav-item" href="/dashboard/admin/drivers/"><span class="nav-icon material-icons-round">badge</span>Drivers</a>
+      <a class="nav-item" href="/dashboard/admin/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Ambulances</a>
+      <div class="nav-section-label">Operations</div>
+      <a class="nav-item" href="/dashboard/admin/requests/"><span class="nav-icon material-icons-round">assignment</span>All Requests</a>
+      <a class="nav-item active" href="/dashboard/admin/reports/"><span class="nav-icon material-icons-round">bar_chart</span>Reports</a>
+      <div class="nav-section-label">System</div>
+      <a class="nav-item" href="/dashboard/admin/settings/"><span class="nav-icon material-icons-round">settings</span>Settings</a>
+      <a class="nav-item" href="/admin/"><span class="nav-icon material-icons-round">admin_panel_settings</span>Django Admin</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar">A</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Administrator</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Reports & Analytics</h1>
+        <p>System-wide performance overview</p>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- KPI Cards -->
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px;">
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div><div class="stat-value" id="r-completed">—</div><div class="stat-label">Completed Trips</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">❌</div>
+          <div><div class="stat-value" id="r-rejected">—</div><div class="stat-label">Rejected</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">📋</div>
+          <div><div class="stat-value" id="r-total">—</div><div class="stat-label">Total Requests</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">💰</div>
+          <div><div class="stat-value" id="r-revenue">—</div><div class="stat-label">Total Revenue (Tsh)</div></div>
+        </div>
+      </div>
+
+      <!-- Row 2 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+
+        <!-- Request Status Breakdown -->
+        <div class="table-card" style="padding:24px;">
+          <h3 style="font-size:1rem;margin-bottom:20px;">📊 Request Status Breakdown</h3>
+          <div id="status-breakdown"></div>
+        </div>
+
+        <!-- Ambulance Fleet Summary -->
+        <div class="table-card" style="padding:24px;">
+          <h3 style="font-size:1rem;margin-bottom:20px;">🚑 Fleet Status</h3>
+          <div id="fleet-summary"></div>
+        </div>
+      </div>
+
+      <!-- Top Drivers -->
+      <div class="table-card">
+        <div class="table-header"><h3>🏆 Driver Performance</h3></div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr><th>Driver</th><th>Trips Completed</th><th>Trips Rejected</th><th>Revenue Generated</th><th>Completion Rate</th></tr>
+            </thead>
+            <tbody id="driver-perf-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('admin');
+  document.getElementById('sidebar-name').textContent = API.getName() || 'Administrator';
+
+  function bar(pct, color) {
+    return `<div style="background:var(--bg-input);border-radius:999px;height:8px;overflow:hidden;margin-top:6px;">
+      <div style="height:100%;border-radius:999px;background:${color};width:${pct}%;transition:width 0.8s;"></div>
+    </div>`;
+  }
+
+  async function loadReports() {
+    const [reqRes, ambRes, billingStatsRes] = await Promise.all([
+      API.request('/api/admin/requests/'),
+      API.request('/api/ambulances/'),
+      API.request('/api/billing/admin/stats/'),
+    ]);
+
+    if (!reqRes?.ok) return;
+
+    const requests      = await reqRes.json();
+    const ambulances    = ambRes?.ok ? await ambRes.json() : [];
+    const billingStats  = billingStatsRes?.ok ? await billingStatsRes.json() : {};
+
+    // ── KPIs (use real billing data)
+    const completed = requests.filter(r => r.status === 'completed');
+    const rejected  = requests.filter(r => r.status === 'rejected');
+
+    document.getElementById('r-completed').textContent = completed.length;
+    document.getElementById('r-rejected').textContent  = rejected.length;
+    document.getElementById('r-total').textContent     = requests.length;
+    document.getElementById('r-revenue').textContent   =
+      (billingStats.total_revenue || 0).toLocaleString();
+
+
+    // ── Status Breakdown
+    const statuses = ['pending','accepted','arrived','patient_picked','completed','rejected','cancelled'];
+    const colors   = { completed:'#10b981', pending:'#f59e0b', accepted:'#3b82f6',
+                       arrived:'#8b5cf6', patient_picked:'#f59e0b', rejected:'#ef4444', cancelled:'#6b7280' };
+    const total = requests.length || 1;
+    document.getElementById('status-breakdown').innerHTML = statuses.map(s => {
+      const cnt = requests.filter(r=>r.status===s).length;
+      if (!cnt) return '';
+      const pct = Math.round(cnt/total*100);
+      return `<div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
+          <span style="text-transform:capitalize;font-weight:500;">${s.replace('_',' ')}</span>
+          <span style="color:var(--text-muted);">${cnt} (${pct}%)</span>
+        </div>${bar(pct, colors[s]||'#6b7280')}
+      </div>`;
+    }).join('');
+
+    // ── Fleet
+    const fleetGroups = { available:'#10b981', busy:'#ef4444', maintenance:'#f59e0b', offline:'#6b7280' };
+    document.getElementById('fleet-summary').innerHTML = Object.entries(fleetGroups).map(([s,c]) => {
+      const cnt = ambulances.filter(a=>a.status===s).length;
+      const pct = ambulances.length ? Math.round(cnt/ambulances.length*100) : 0;
+      return `<div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
+          <span style="text-transform:capitalize;font-weight:500;">${s}</span>
+          <span style="color:var(--text-muted);">${cnt} unit${cnt!==1?'s':''}</span>
+        </div>${bar(pct, c)}
+      </div>`;
+    }).join('');
+
+    // ── Driver Performance
+    const byDriver = {};
+    requests.forEach(r => {
+      if (!r.ambulance_name) return;
+      const key = r.ambulance_name;
+      if (!byDriver[key]) byDriver[key] = { completed:0, rejected:0, revenue:0 };
+      if (r.status === 'completed') { byDriver[key].completed++; byDriver[key].revenue += parseFloat(r.total_cost||0); }
+      if (r.status === 'rejected')  byDriver[key].rejected++;
+    });
+
+    const rows = Object.entries(byDriver).sort((a,b) => b[1].completed - a[1].completed);
+    const tbody = document.getElementById('driver-perf-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">
+        No trip data yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(([name, d]) => {
+      const total = d.completed + d.rejected;
+      const rate  = total ? Math.round(d.completed/total*100) : 0;
+      return `<tr>
+        <td style="font-weight:600;">${name}</td>
+        <td><span style="color:#34d399;font-weight:700;">${d.completed}</span></td>
+        <td><span style="color:#f87171;">${d.rejected}</span></td>
+        <td style="font-weight:600;">Tsh ${d.revenue.toLocaleString()}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-weight:600;color:${rate>70?'#34d399':rate>40?'#fcd34d':'#f87171'};">${rate}%</span>
+            ${bar(rate, rate>70?'#10b981':rate>40?'#f59e0b':'#ef4444')}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  loadReports();
+</script>
+{% endblock %}

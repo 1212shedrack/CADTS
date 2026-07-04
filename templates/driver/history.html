@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Trip History{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Driver Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item" href="/dashboard/driver/"><span class="nav-icon material-icons-round">dashboard</span>Overview</a>
+      <a class="nav-item" href="/dashboard/driver/current/"><span class="nav-icon material-icons-round">directions_car</span>Current Request</a>
+      <div class="nav-section-label">My Activity</div>
+      <a class="nav-item active" href="/dashboard/driver/history/"><span class="nav-icon material-icons-round">history</span>Trip History</a>
+      <a class="nav-item" href="/dashboard/driver/profile/"><span class="nav-icon material-icons-round">manage_accounts</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="user-avatar">D</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Loading…</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title"><h1>Trip History</h1><p>All past and active trips for your ambulance</p></div>
+    </header>
+
+    <main class="page-content">
+
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px;">
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="s-completed">—</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="s-rejected">—</div><div class="stat-label">Rejected</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">🗺️</div><div><div class="stat-value" id="s-km">—</div><div class="stat-label">Total KM</div></div></div>
+        <div class="stat-card"><div class="stat-icon amber">📋</div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">All Trips</div></div></div>
+      </div>
+
+      <!-- Filter -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="filter-tab active" onclick="filterTrips('all',this)">All</button>
+        <button class="filter-tab" onclick="filterTrips('completed',this)">✅ Completed</button>
+        <button class="filter-tab" onclick="filterTrips('rejected',this)">❌ Rejected</button>
+        <button class="filter-tab" onclick="filterTrips('pending',this)">⏳ Pending</button>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Trip Log</h3>
+          <input type="text" id="search-input" placeholder="🔍 Search patient…"
+                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;
+                        padding:8px 14px;color:var(--text-primary);font-size:0.85rem;outline:none;width:200px;"
+                 oninput="searchTrips(this.value)"/>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Patient</th><th>Status</th><th>Distance</th><th>Cost (Tsh)</th><th>Date</th></tr>
+            </thead>
+            <tbody id="trips-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text-muted);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filter-tab {
+    padding:7px 16px;border-radius:999px;border:1px solid var(--border);
+    background:var(--bg-glass);color:var(--text-muted);font-size:0.82rem;font-weight:500;cursor:pointer;transition:var(--transition);
+  }
+  .filter-tab.active,.filter-tab:hover {
+    background:rgba(230,57,70,0.12);border-color:rgba(230,57,70,0.4);color:var(--primary-light);
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('driver');
+  const name = API.getName() || 'Driver';
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('user-avatar').textContent  = name.charAt(0).toUpperCase();
+
+  let allTrips = [], currentFilter = 'all', searchQ = '';
+
+  const STATUS_COLORS = {
+    pending:'#f59e0b', accepted:'#3b82f6', arrived:'#8b5cf6',
+    patient_picked:'#f59e0b', completed:'#10b981', rejected:'#ef4444', cancelled:'#6b7280',
+  };
+
+  async function loadTrips() {
+    const res = await API.request('/api/requests/driver/');
+    if (!res?.ok) { renderTable([]); return; }
+    allTrips = await res.json();
+    updateStats(allTrips);
+    renderTable(applyFilters());
+  }
+
+  function updateStats(list) {
+    document.getElementById('s-completed').textContent = list.filter(r=>r.status==='completed').length;
+    document.getElementById('s-rejected').textContent  = list.filter(r=>r.status==='rejected').length;
+    document.getElementById('s-total').textContent     = list.length;
+    const km = list.reduce((s,r)=>s+(parseFloat(r.distance)||0),0);
+    document.getElementById('s-km').textContent = km.toFixed(1);
+  }
+
+  function filterTrips(status, btn) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable(applyFilters());
+  }
+
+  function searchTrips(q) { searchQ = q.toLowerCase(); renderTable(applyFilters()); }
+
+  function applyFilters() {
+    let list = [...allTrips];
+    if (currentFilter !== 'all') list = list.filter(r=>r.status===currentFilter);
+    if (searchQ) list = list.filter(r=>(r.user_name||'').toLowerCase().includes(searchQ));
+    return list;
+  }
+
+  function renderTable(list) {
+    const tbody = document.getElementById('trips-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text-muted);">
+        <span class="material-icons-round" style="font-size:36px;display:block;margin-bottom:8px;">route</span>
+        No trips found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(r => {
+      const color = STATUS_COLORS[r.status] || '#6b7280';
+      return `<tr>
+        <td style="color:var(--text-muted);">#${r.id}</td>
+        <td style="font-weight:600;">${r.user_name||'—'}</td>
+        <td><span style="background:${color}22;color:${color};padding:2px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;">
+          ${r.status.replace('_',' ')}
+        </span></td>
+        <td>${r.distance?r.distance+' km':'—'}</td>
+        <td>${r.total_cost?'Tsh '+Number(r.total_cost).toLocaleString():'—'}</td>
+        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  loadTrips();
+</script>
+{% endblock %}

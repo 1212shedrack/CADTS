@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}User Management{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item" href="/dashboard/admin/"><span class="nav-icon material-icons-round">dashboard</span>Dashboard</a>
+      <div class="nav-section-label">Management</div>
+      <a class="nav-item active" href="/dashboard/admin/users/"><span class="nav-icon material-icons-round">group</span>Users</a>
+      <a class="nav-item" href="/dashboard/admin/drivers/"><span class="nav-icon material-icons-round">badge</span>Drivers</a>
+      <a class="nav-item" href="/dashboard/admin/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Ambulances</a>
+      <div class="nav-section-label">Operations</div>
+      <a class="nav-item" href="/dashboard/admin/requests/"><span class="nav-icon material-icons-round">assignment</span>All Requests</a>
+      <a class="nav-item" href="/dashboard/admin/reports/"><span class="nav-icon material-icons-round">bar_chart</span>Reports</a>
+      <div class="nav-section-label">System</div>
+      <a class="nav-item" href="/dashboard/admin/settings/"><span class="nav-icon material-icons-round">settings</span>Settings</a>
+      <a class="nav-item" href="/admin/"><span class="nav-icon material-icons-round">admin_panel_settings</span>Django Admin</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar">A</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Administrator</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>User Management</h1>
+        <p>View all registered citizen users</p>
+      </div>
+      <div class="topbar-actions">
+        <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);
+                    border-radius:999px;padding:6px 14px;
+                    font-size:0.82rem;font-weight:600;color:#60a5fa;
+                    display:flex;align-items:center;gap:6px;">
+          <span class="material-icons-round" style="font-size:16px;">people</span>
+          Total: <span id="total-users">—</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="alert" id="page-alert"></div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>All Users</h3>
+          <input type="text" id="search-input" placeholder="🔍 Search name or email…"
+                 style="background:var(--bg-input);border:1px solid var(--border);
+                        border-radius:8px;padding:8px 14px;color:var(--text-primary);
+                        font-size:0.85rem;outline:none;width:240px;"
+                 oninput="searchUsers(this.value)"/>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Name</th><th>Email</th><th>Phone</th>
+                <th>Status</th><th>Registered</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text-muted);">
+                <span class="material-icons-round" style="font-size:40px;display:block;margin-bottom:10px;">people</span>
+                Loading users…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('admin');
+  document.getElementById('sidebar-name').textContent = API.getName() || 'Administrator';
+
+  let allUsers = [];
+
+  async function loadUsers() {
+    const res = await API.request('/api/admin/users/');
+    if (!res?.ok) return;
+    allUsers = await res.json();
+    document.getElementById('total-users').textContent = allUsers.length;
+    renderUsers(allUsers);
+  }
+
+  function searchUsers(q) {
+    const filtered = allUsers.filter(u =>
+      u.full_name.toLowerCase().includes(q.toLowerCase()) ||
+      u.email.toLowerCase().includes(q.toLowerCase())
+    );
+    renderUsers(filtered);
+  }
+
+  function renderUsers(list) {
+    const tbody = document.getElementById('users-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text-muted);">
+        <span class="material-icons-round" style="font-size:40px;display:block;margin-bottom:10px;">person_off</span>
+        No users found
+      </td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(u => `
+      <tr>
+        <td style="color:var(--text-muted);">#${u.id}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:50%;
+                        background:linear-gradient(135deg,var(--primary),var(--secondary-light));
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:13px;font-weight:700;flex-shrink:0;">
+              ${u.full_name.charAt(0).toUpperCase()}
+            </div>
+            <span style="font-weight:600;color:var(--text-primary);">${u.full_name}</span>
+          </div>
+        </td>
+        <td>${u.email}</td>
+        <td>${u.phone || '—'}</td>
+        <td>${u.is_active
+              ? '<span class="badge badge-active">Active</span>'
+              : '<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+      </tr>`).join('');
+  }
+
+  loadUsers();
+</script>
+{% endblock %}

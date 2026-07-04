@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Login{% endblock %}
+{% block meta_description %}Login to CADTS — Centralized Ambulance Dispatch & Tracking System{% endblock %}
+
+{% block body %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🚑</div>
+      <div class="auth-logo-text">
+        <h1>CADTS</h1>
+        <p>Ambulance Dispatch System</p>
+      </div>
+    </div>
+
+    <h2 class="auth-title">Welcome back</h2>
+    <p class="auth-subtitle">Sign in to your account to continue</p>
+
+    <!-- Role Tabs -->
+    <!-- <div class="role-tabs">
+      <button class="role-tab active" onclick="setRole('user', this)" id="tab-user">👤 User</button>
+      <button class="role-tab" onclick="setRole('driver', this)" id="tab-driver">🚑 Driver</button>
+      <button class="role-tab" onclick="setRole('admin', this)" id="tab-admin">🛡️ Admin</button>
+    </div> -->
+
+    <!-- Alert -->
+    <div class="alert alert-error" id="login-alert"></div>
+
+    <!-- Form -->
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <div class="input-group">
+          <span class="input-icon material-icons-round">mail</span>
+          <input type="email" id="email" name="email" class="form-input"
+                 placeholder="you@example.com" required autocomplete="email"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-group">
+          <span class="input-icon material-icons-round">lock</span>
+          <input type="password" id="password" name="password" class="form-input"
+                 placeholder="Enter your password" required autocomplete="current-password"/>
+          <button type="button" class="input-toggle" onclick="togglePassword('password', this)">
+            <span class="material-icons-round">visibility</span>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="login-btn">
+        <span class="spinner" id="login-spinner"></span>
+        <span id="login-btn-text">Sign In</span>
+      </button>
+
+      <div style="text-align:center;margin-top:16px;">
+        <a href="/accounts/forgot-password/"
+           style="font-size:0.85rem;color:var(--text-muted);text-decoration:none;">
+          🔑 Forgot your password?
+        </a>
+      </div>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account?
+        <a href="/accounts/register/user/" id="register-link">Register as User</a> ·
+        <a href="/accounts/register/driver/">Register as Driver</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentRole = 'user';
+
+  function setRole(role, el) {
+    currentRole = role;
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const link = document.getElementById('register-link');
+    if (role === 'user')   link.href = '/accounts/register/user/';
+    if (role === 'driver') link.href = '/accounts/register/driver/';
+    if (role === 'admin')  link.style.display = 'none';
+    else link.style.display = '';
+  }
+
+  function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon  = btn.querySelector('.material-icons-round');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.textContent = 'visibility_off';
+    } else {
+      input.type = 'password';
+      icon.textContent = 'visibility';
+    }
+  }
+
+  function showAlert(msg, type='error') {
+    const el = document.getElementById('login-alert');
+    el.className = `alert alert-${type} show`;
+    el.textContent = msg;
+  }
+
+  function setLoading(loading) {
+    const btn     = document.getElementById('login-btn');
+    const spinner = document.getElementById('login-spinner');
+    const text    = document.getElementById('login-btn-text');
+    btn.disabled       = loading;
+    spinner.classList.toggle('show', loading);
+    text.textContent   = loading ? 'Signing in…' : 'Sign In';
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+      showAlert('Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        // Store tokens
+        localStorage.setItem('access_token',  data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        localStorage.setItem('user_role',     data.user.role);
+        localStorage.setItem('user_name',     data.user.full_name);
+        localStorage.setItem('user_id',       data.user.id);
+
+        showAlert('Login successful! Redirecting…', 'success');
+
+        // Redirect based on role
+        setTimeout(() => {
+          const role = data.user.role;
+          if (role === 'admin')  window.location.href = '/dashboard/admin/';
+          else if (role === 'driver') window.location.href = '/dashboard/driver/';
+          else window.location.href = '/dashboard/user/';
+        }, 800);
+      } else {
+        const msg = data.non_field_errors?.[0] || data.detail || 'Login failed. Please try again.';
+        showAlert(msg);
+      }
+    } catch (err) {
+      showAlert('Network error. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+{% endblock %}

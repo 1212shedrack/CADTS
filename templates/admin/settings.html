@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}System Settings{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item" href="/dashboard/admin/"><span class="nav-icon material-icons-round">dashboard</span>Dashboard</a>
+      <div class="nav-section-label">Management</div>
+      <a class="nav-item" href="/dashboard/admin/users/"><span class="nav-icon material-icons-round">group</span>Users</a>
+      <a class="nav-item" href="/dashboard/admin/drivers/"><span class="nav-icon material-icons-round">badge</span>Drivers</a>
+      <a class="nav-item" href="/dashboard/admin/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Ambulances</a>
+      <div class="nav-section-label">Operations</div>
+      <a class="nav-item" href="/dashboard/admin/requests/"><span class="nav-icon material-icons-round">assignment</span>All Requests</a>
+      <a class="nav-item" href="/dashboard/admin/reports/"><span class="nav-icon material-icons-round">bar_chart</span>Reports</a>
+      <div class="nav-section-label">System</div>
+      <a class="nav-item active" href="/dashboard/admin/settings/"><span class="nav-icon material-icons-round">settings</span>Settings</a>
+      <a class="nav-item" href="/admin/"><span class="nav-icon material-icons-round">admin_panel_settings</span>Django Admin</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar">A</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Administrator</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>System Settings</h1>
+        <p>Billing rates and system configuration</p>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div style="max-width:620px;margin:0 auto;">
+
+        <div class="alert" id="page-alert"></div>
+
+        <!-- Billing Settings -->
+        <div class="table-card" style="padding:28px;margin-bottom:20px;">
+          <h3 style="font-size:1rem;margin-bottom:6px;">💰 Billing Configuration</h3>
+          <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:24px;">
+            These rates are applied automatically when a trip is completed.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Base Fee per Trip (Tsh)</label>
+            <div class="input-group">
+              <span class="input-icon material-icons-round">attach_money</span>
+              <input type="number" id="f-base" class="form-input" value="5000" min="0" step="500"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rate per KM (Tsh)</label>
+            <div class="input-group">
+              <span class="input-icon material-icons-round">route</span>
+              <input type="number" id="f-rate" class="form-input" value="2000" min="0" step="100"/>
+            </div>
+          </div>
+
+          <div style="background:rgba(230,57,70,0.06);border:1px solid rgba(230,57,70,0.15);
+                      border-radius:10px;padding:16px;margin:16px 0;">
+            <p style="font-size:0.875rem;color:var(--text-muted);margin:0;">
+              💡 <strong style="color:var(--text-primary);">Example:</strong>
+              A 5 km trip would cost:
+              <code id="example-cost" style="color:var(--primary-light);font-weight:700;"></code>
+            </p>
+          </div>
+
+          <button class="btn btn-primary" onclick="saveSettings()" style="margin-top:8px;">
+            <span class="spinner" id="save-spinner"></span>
+            <span id="save-text">Save Settings</span>
+          </button>
+        </div>
+
+        <!-- System Info -->
+        <div class="table-card" style="padding:24px;">
+          <h3 style="font-size:1rem;margin-bottom:20px;">🖥️ System Information</h3>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+              <span style="color:var(--text-muted);">System Name</span>
+              <span style="font-weight:600;">CADTS — Centralized Ambulance Dispatch</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+              <span style="color:var(--text-muted);">Map Provider</span>
+              <span style="font-weight:600;">OpenStreetMap + Leaflet.js</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+              <span style="color:var(--text-muted);">WebSocket</span>
+              <span style="font-weight:600;">Django Channels (In-Memory Layer)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;">
+              <span style="color:var(--text-muted);">Django Admin</span>
+              <a href="/admin/" style="color:var(--primary-light);font-weight:600;">
+                Open Django Admin →
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('admin');
+  document.getElementById('sidebar-name').textContent = API.getName() || 'Administrator';
+
+  // Load saved settings from localStorage
+  const saved = JSON.parse(localStorage.getItem('cadts_settings') || '{}');
+  if (saved.base) document.getElementById('f-base').value = saved.base;
+  if (saved.rate) document.getElementById('f-rate').value = saved.rate;
+  updateExample();
+
+  document.getElementById('f-base').addEventListener('input', updateExample);
+  document.getElementById('f-rate').addEventListener('input', updateExample);
+
+  function updateExample() {
+    const base = parseFloat(document.getElementById('f-base').value) || 0;
+    const rate = parseFloat(document.getElementById('f-rate').value) || 0;
+    const example = base + rate * 5;
+    document.getElementById('example-cost').textContent = `Tsh ${example.toLocaleString()}`;
+  }
+
+  function saveSettings() {
+    const base = parseFloat(document.getElementById('f-base').value) || 5000;
+    const rate = parseFloat(document.getElementById('f-rate').value) || 2000;
+    localStorage.setItem('cadts_settings', JSON.stringify({ base, rate }));
+
+    const el = document.getElementById('page-alert');
+    el.className = 'alert alert-success show';
+    el.textContent = '✅ Settings saved successfully!';
+    setTimeout(() => el.className = 'alert', 4000);
+  }
+
+  updateExample();
+</script>
+{% endblock %}

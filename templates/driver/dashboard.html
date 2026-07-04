@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Driver Dashboard{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text">
+        <h2>CADTS</h2>
+        <p>Driver Panel</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item active" href="/dashboard/driver/">
+        <span class="nav-icon material-icons-round">dashboard</span> Overview
+      </a>
+      <a class="nav-item" href="/dashboard/driver/current/">
+        <span class="nav-icon material-icons-round">directions_car</span> Current Request
+        <span class="nav-badge" id="badge-current" style="display:none;">1</span>
+      </a>
+
+      <div class="nav-section-label">My Activity</div>
+      <a class="nav-item" href="/dashboard/driver/history/">
+        <span class="nav-icon material-icons-round">history</span> Trip History
+      </a>
+      <a class="nav-item" href="/dashboard/driver/profile/">
+        <span class="nav-icon material-icons-round">manage_accounts</span> Profile
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <!-- Online/Offline Toggle -->
+      <div style="padding:12px; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    background:var(--bg-glass); border:1px solid var(--border);
+                    border-radius:10px; padding:12px 14px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="material-icons-round" id="status-icon" style="color:#10b981; font-size:16px;">circle</span>
+            <span id="status-label" style="font-size:0.85rem; font-weight:500; color:var(--text-primary);">Online</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="online-toggle" checked onchange="toggleOnlineStatus(this)"/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="user-avatar">D</div>
+        <div class="sidebar-user-info">
+          <p id="sidebar-name">Loading…</p>
+          <p>Click to logout</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main-content">
+
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Driver Overview</h1>
+        <p id="topbar-date">—</p>
+      </div>
+      <div class="topbar-actions">
+        <div id="driver-status-pill" style="
+            display:flex; align-items:center; gap:6px;
+            padding:7px 14px;
+            border-radius:999px;
+            background:rgba(16,185,129,0.1);
+            border:1px solid rgba(16,185,129,0.3);
+            font-size:0.8rem; font-weight:600; color:#34d399;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+          <span id="pill-status">Available</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Incoming Request Alert -->
+      <div id="incoming-alert" style="display:none;
+           background:rgba(230,57,70,0.1); border:2px solid rgba(230,57,70,0.4);
+           border-radius:14px; padding:20px 24px; margin-bottom:24px;
+           animation: glowPulse 1.5s ease-in-out infinite;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <span class="material-icons-round" style="color:#f87171; font-size:32px; animation:pulse 1s infinite;">notifications_active</span>
+          <div style="flex:1;">
+            <p style="color:#f1f1f1; font-weight:700; font-size:1rem; margin:0;">🚨 New Ambulance Request!</p>
+            <p style="margin:4px 0 0; font-size:0.875rem; color:#fca5a5;" id="incoming-detail">A patient needs assistance.</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button onclick="respondToRequest('accept')" class="btn btn-primary" style="width:auto; padding:10px 20px; font-size:0.85rem;">
+              ✓ Accept
+            </button>
+            <button onclick="respondToRequest('reject')" class="btn btn-outline" style="padding:10px 20px; font-size:0.85rem; border-color:rgba(239,68,68,0.4); color:#f87171;">
+              ✗ Reject
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div>
+            <div class="stat-value" id="stat-completed">—</div>
+            <div class="stat-label">Trips Completed</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">🗺️</div>
+          <div>
+            <div class="stat-value" id="stat-distance">—</div>
+            <div class="stat-label">Total KM Driven</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">⏱️</div>
+          <div>
+            <div class="stat-value" id="stat-today">—</div>
+            <div class="stat-label">Today's Trips</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">❌</div>
+          <div>
+            <div class="stat-value" id="stat-rejected">—</div>
+            <div class="stat-label">Rejected Requests</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+
+        <!-- Recent Trips -->
+        <div class="table-card">
+          <div class="table-header">
+            <h3>Recent Trips</h3>
+            <a href="/dashboard/driver/history/" style="font-size:0.8rem; color:var(--primary-light);">View all →</a>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Patient</th>
+                  <th>Distance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="recent-trips">
+                <tr>
+                  <td colspan="4" style="text-align:center; padding:32px; color:var(--text-muted);">
+                    <span class="material-icons-round" style="font-size:36px; display:block; margin-bottom:8px;">route</span>
+                    No trips yet
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- My Ambulance Info -->
+        <div class="table-card" style="padding:24px;">
+          <h3 style="margin-bottom:20px; font-size:1rem;">My Ambulance</h3>
+          <div id="ambulance-info">
+            <div style="text-align:center; padding:32px 0; color:var(--text-muted);">
+              <div style="font-size:48px; margin-bottom:8px;">🚑</div>
+              <p>No ambulance assigned yet.</p>
+              <p style="font-size:0.8rem; margin-top:4px;">Contact your administrator.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  @keyframes glowPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(230,57,70,0); }
+    50%      { box-shadow: 0 0 20px rgba(230,57,70,0.3); }
+  }
+
+  /* Toggle Switch */
+  .toggle-switch { position:relative; display:inline-block; width:44px; height:24px; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider {
+    position:absolute; cursor:pointer; top:0;left:0;right:0;bottom:0;
+    background:#374151; border-radius:34px;
+    transition: .3s;
+  }
+  .toggle-slider:before {
+    content:""; position:absolute;
+    height:18px; width:18px; left:3px; bottom:3px;
+    background:#fff; border-radius:50%;
+    transition: .3s;
+  }
+  input:checked + .toggle-slider { background:#10b981; }
+  input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+  .ambulance-info-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0; border-bottom:1px solid var(--border);
+    font-size:0.875rem;
+  }
+  .ambulance-info-row:last-child { border-bottom:none; }
+  .ambulance-info-row span:first-child { color:var(--text-muted); }
+  .ambulance-info-row span:last-child  { color:var(--text-primary); font-weight:500; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script src="{% static 'js/tracking.js' %}"></script>
+<script>
+  API.requireAuth('driver');
+
+  let currentRequestId = null;
+
+  function init() {
+    const name = API.getName() || 'Driver';
+    document.getElementById('sidebar-name').textContent = name;
+    document.getElementById('user-avatar').textContent  = name.charAt(0).toUpperCase();
+
+    const now = new Date();
+    document.getElementById('topbar-date').textContent = now.toLocaleDateString('en-US', {
+      weekday:'long', year:'numeric', month:'long', day:'numeric'
+    });
+  }
+
+  async function toggleOnlineStatus(checkbox) {
+    const isOnline = checkbox.checked;
+    const pill     = document.getElementById('driver-status-pill');
+    const label    = document.getElementById('status-label');
+    const icon     = document.getElementById('status-icon');
+    const pillText = document.getElementById('pill-status');
+
+    if (isOnline) {
+      label.textContent = 'Online';
+      icon.style.color  = '#10b981';
+      pill.style.background = 'rgba(16,185,129,0.1)';
+      pill.style.borderColor = 'rgba(16,185,129,0.3)';
+      pill.style.color = '#34d399';
+      pillText.textContent = 'Available';
+    } else {
+      label.textContent = 'Offline';
+      icon.style.color  = '#6b7280';
+      pill.style.background = 'rgba(107,114,128,0.1)';
+      pill.style.borderColor = 'rgba(107,114,128,0.3)';
+      pill.style.color = '#9ca3af';
+      pillText.textContent = 'Offline';
+    }
+    // API call will be wired in Phase 6
+  }
+
+  async function loadStats() {
+    try {
+      const res = await API.request('/api/requests/driver/');
+      if (res?.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.results ?? []);
+
+        const completed = list.filter(r => r.status === 'completed').length;
+        const rejected  = list.filter(r => r.status === 'rejected').length;
+        const today     = list.filter(r => {
+          const d = new Date(r.created_at);
+          const n = new Date();
+          return d.toDateString() === n.toDateString();
+        }).length;
+        const km = list.reduce((s,r) => s + (parseFloat(r.distance) || 0), 0);
+
+        document.getElementById('stat-completed').textContent = completed;
+        document.getElementById('stat-rejected').textContent  = rejected;
+        document.getElementById('stat-today').textContent     = today;
+        document.getElementById('stat-distance').textContent  = km.toFixed(1) + ' km';
+
+        if (list.length > 0) {
+          const tbody = document.getElementById('recent-trips');
+          tbody.innerHTML = list.slice(0,5).map(r => `
+            <tr>
+              <td>${new Date(r.created_at).toLocaleDateString()}</td>
+              <td>${r.user_name || '—'}</td>
+              <td>${r.distance ? r.distance + ' km' : '—'}</td>
+              <td><span class="badge badge-${r.status}">${r.status}</span></td>
+            </tr>
+          `).join('');
+        }
+      } else {
+        ['stat-completed','stat-rejected','stat-today'].forEach(id =>
+          document.getElementById(id).textContent = '0');
+        document.getElementById('stat-distance').textContent = '0 km';
+      }
+    } catch(e) {
+      ['stat-completed','stat-rejected','stat-today'].forEach(id =>
+        document.getElementById(id).textContent = '—');
+    }
+
+    // Load ambulance info
+    try {
+      const res = await API.request('/api/ambulances/mine/');
+      if (res?.ok) {
+        const amb = await res.json();
+        document.getElementById('ambulance-info').innerHTML = `
+          <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:48px;">🚑</div>
+            <p style="font-size:1.1rem; font-weight:700; margin:8px 0 4px;">${amb.ambulance_name}</p>
+            <span class="badge badge-${amb.status.toLowerCase()}">${amb.status}</span>
+          </div>
+          <div class="ambulance-info-row">
+            <span>Plate Number</span>
+            <span>${amb.plate_number}</span>
+          </div>
+          <div class="ambulance-info-row">
+            <span>Status</span>
+            <span>${amb.status}</span>
+          </div>
+        `;
+      }
+    } catch(e) {}
+  }
+
+  function respondToRequest(action) {
+    if (!currentRequestId) return;
+    API.request(`/api/requests/${currentRequestId}/${action}/`, { method: 'POST' })
+      .then(res => {
+        if (res?.ok) {
+          document.getElementById('incoming-alert').style.display = 'none';
+          if (action === 'accept') window.location.href = '/dashboard/driver/current/';
+        }
+      });
+  }
+
+  init();
+  loadStats();
+
+  // Connect notification channel so the driver gets live request alerts
+  API.request('/api/auth/profile/').then(async res => {
+    if (!res?.ok) return;
+    const profile  = await res.json();
+    const driverId = profile.id;
+
+    NotificationClient.connect(
+      driverId,
+      (data) => {
+        // Show the incoming-request alert if it exists on this page
+        const alert = document.getElementById('incoming-alert');
+        if (alert) {
+          document.getElementById('incoming-user').textContent = data.user_name || 'A patient';
+          currentRequestId = data.request_id;
+          alert.style.display = 'flex';
+        }
+        // Flash the nav badge
+        const badge = document.getElementById('badge-current');
+        if (badge) badge.style.display = 'inline-block';
+      },
+      (data) => {
+        const alert = document.getElementById('incoming-alert');
+        if (alert) alert.style.display = 'none';
+      }
+    );
+  });
+</script>
+{% endblock %}

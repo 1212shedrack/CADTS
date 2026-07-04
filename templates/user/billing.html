@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Billing{% endblock %}
+
+{% block extra_css %}
+<style>
+  .bill-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    transition: var(--transition);
+    cursor: pointer;
+  }
+  .bill-card:hover {
+    border-color: rgba(230,57,70,0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+  .bill-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0;
+              border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+  .bill-row:last-child { border-bottom: none; }
+  .bill-row span:first-child { color: var(--text-muted); }
+  .bill-row span:last-child  { font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Dispatch System</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item" href="/dashboard/user/"><span class="nav-icon material-icons-round">dashboard</span>Overview</a>
+      <a class="nav-item" href="/dashboard/user/map/"><span class="nav-icon material-icons-round">map</span>Live Map</a>
+      <div class="nav-section-label">Emergency</div>
+      <a class="nav-item" href="/dashboard/user/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Available Ambulances</a>
+      <a class="nav-item" href="/dashboard/user/hospitals/"><span class="nav-icon material-icons-round">local_hospital</span>Nearby Hospitals</a>
+      <a class="nav-item" href="/dashboard/user/track/"><span class="nav-icon material-icons-round">location_on</span>Track Ambulance</a>
+      <div class="nav-section-label">My Account</div>
+      <a class="nav-item" href="/dashboard/user/history/"><span class="nav-icon material-icons-round">history</span>Request History</a>
+      <a class="nav-item active" href="/dashboard/user/billing/"><span class="nav-icon material-icons-round">receipt_long</span>Billing</a>
+      <a class="nav-item" href="/dashboard/user/profile/"><span class="nav-icon material-icons-round">manage_accounts</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="user-avatar">U</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Loading…</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Billing</h1>
+        <p>Your transportation charges and trip payment records</p>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Summary Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:28px;">
+        <div class="stat-card">
+          <div class="stat-icon blue">🧾</div>
+          <div><div class="stat-value" id="s-total-bills">—</div><div class="stat-label">Total Bills</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">💰</div>
+          <div><div class="stat-value" id="s-total-spent">—</div><div class="stat-label">Total Spent (Tsh)</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">🗺️</div>
+          <div><div class="stat-value" id="s-total-km">—</div><div class="stat-label">Total KM</div></div>
+        </div>
+      </div>
+
+      <!-- Formula Banner -->
+      <div style="background:rgba(230,57,70,0.06);border:1px solid rgba(230,57,70,0.18);
+                  border-radius:14px;padding:18px 24px;margin-bottom:24px;
+                  display:flex;align-items:center;gap:16px;">
+        <span style="font-size:24px;">💡</span>
+        <p style="font-size:0.875rem;color:var(--text-muted);margin:0;">
+          <strong style="color:var(--text-primary);">Billing formula:</strong>
+          Base fee <strong style="color:var(--primary-light);">Tsh 5,000</strong> +
+          <strong style="color:var(--primary-light);">Tsh 2,000</strong> × distance (km).
+          Generated automatically when your trip is completed.
+        </p>
+      </div>
+
+      <div class="alert" id="page-alert"></div>
+
+      <!-- Bills Grid -->
+      <div id="bills-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;">
+        <div style="grid-column:1/-1;text-align:center;padding:64px;color:var(--text-muted);">
+          <div style="font-size:48px;margin-bottom:12px;">🔄</div>
+          <p>Loading billing records…</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ── Bill Detail Modal ── -->
+<div id="bill-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+              padding:36px;width:100%;max-width:460px;margin:24px;animation:slideUp .3s ease;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <h3 style="font-size:1.1rem;">🧾 Bill Receipt</h3>
+      <button onclick="closeModal()" style="background:none;border:none;color:var(--text-muted);
+              font-size:24px;cursor:pointer;" class="material-icons-round">close</button>
+    </div>
+
+    <!-- Receipt header -->
+    <div style="text-align:center;padding:20px;background:rgba(230,57,70,0.06);
+                border-radius:12px;margin-bottom:24px;">
+      <div style="font-size:36px;margin-bottom:8px;">🚑</div>
+      <div id="m-ambulance" style="font-weight:700;font-size:1rem;"></div>
+      <div id="m-date" style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;"></div>
+    </div>
+
+    <!-- Line items -->
+    <div id="m-details"></div>
+
+    <!-- Total -->
+    <div style="margin-top:16px;padding:14px 0;border-top:2px solid rgba(230,57,70,0.3);
+                display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:700;font-size:1rem;">Total Charged</span>
+      <span id="m-total" style="font-weight:800;font-size:1.3rem;color:var(--primary-light);"></span>
+    </div>
+
+    <button onclick="closeModal()" class="btn btn-primary" style="margin-top:16px;width:100%;">
+      Close
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('user');
+  const name = API.getName() || 'User';
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('user-avatar').textContent  = name.charAt(0).toUpperCase();
+
+  function formatDistance(dist) {
+    const km = parseFloat(dist || 0);
+    const m = Math.round(km * 1000);
+    if (km < 1) {
+      return `${m} meters`;
+    }
+    return `${km.toFixed(2)} km (${m.toLocaleString()} meters)`;
+  }
+
+  async function loadBilling() {
+    const res = await API.request('/api/billing/my/');
+    const grid = document.getElementById('bills-grid');
+
+    if (!res?.ok) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:64px;color:var(--text-muted);">
+        <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+        <p>Could not load billing records.</p></div>`;
+      return;
+    }
+
+    const bills = await res.json();
+
+    // Stats
+    const totalSpent = bills.reduce((s,b) => s + parseFloat(b.total_cost||0), 0);
+    const totalKm    = bills.reduce((s,b) => s + parseFloat(b.distance_km||0), 0);
+    document.getElementById('s-total-bills').textContent = bills.length;
+    document.getElementById('s-total-spent').textContent = totalSpent.toLocaleString();
+    document.getElementById('s-total-km').textContent    = totalKm.toFixed(1);
+
+    if (!bills.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:64px;color:var(--text-muted);">
+        <div style="font-size:56px;margin-bottom:16px;">🧾</div>
+        <h3 style="margin-bottom:8px;">No Billing Records Yet</h3>
+        <p style="font-size:0.875rem;">Bills appear automatically after your trip is completed.</p>
+        <a href="/dashboard/user/ambulances/" class="btn btn-primary"
+           style="display:inline-flex;margin-top:20px;width:auto;padding:10px 24px;">
+          Request an Ambulance →
+        </a></div>`;
+      return;
+    }
+
+    grid.innerHTML = bills.map(b => {
+      const dist    = parseFloat(b.distance_km || 0);
+      const base    = parseFloat(b.base_fee || 5000);
+      const rate    = parseFloat(b.price_per_km || 2000);
+      const distFee = dist * rate;
+      const total   = parseFloat(b.total_cost || 0);
+      const date    = b.trip_date ? new Date(b.trip_date).toLocaleDateString('en-US',
+                        {day:'numeric',month:'short',year:'numeric'}) : '—';
+      return `<div class="bill-card" onclick="openBill(${JSON.stringify(b).replace(/"/g,'&quot;')})">
+        <!-- Card Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:44px;height:44px;background:rgba(230,57,70,0.12);border-radius:12px;
+                        display:flex;align-items:center;justify-content:center;font-size:20px;">🚑</div>
+            <div>
+              <p style="font-weight:700;margin:0;">${b.ambulance_name || '—'}</p>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;">Request #${b.request_id}</p>
+            </div>
+          </div>
+          <span style="font-size:0.75rem;color:var(--text-muted);">${date}</span>
+        </div>
+
+        <!-- Bill Lines -->
+        <div style="background:var(--bg-input);border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
+            <span style="color:var(--text-muted);">📍 Distance</span>
+            <span style="font-weight:600;">${formatDistance(dist)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
+            <span style="color:var(--text-muted);">💳 Base Fee</span>
+            <span>Tsh ${base.toLocaleString()}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;">
+            <span style="color:var(--text-muted);">🗺️ Distance Fee</span>
+            <span>Tsh ${distFee.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <!-- Total -->
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:600;color:var(--text-secondary);">Total</span>
+          <span style="font-size:1.3rem;font-weight:800;color:var(--primary-light);">
+            Tsh ${total.toLocaleString()}
+          </span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function openBill(b) {
+    document.getElementById('m-ambulance').textContent = b.ambulance_name || '—';
+    document.getElementById('m-date').textContent      = b.trip_date
+      ? new Date(b.trip_date).toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'})
+      : '—';
+    document.getElementById('m-total').textContent = `Tsh ${parseFloat(b.total_cost||0).toLocaleString()}`;
+
+    const dist    = parseFloat(b.distance_km || 0);
+    const base    = parseFloat(b.base_fee || 5000);
+    const rate    = parseFloat(b.price_per_km || 2000);
+    const distFee = dist * rate;
+
+    document.getElementById('m-details').innerHTML = `
+      <div class="bill-row"><span>Request #</span><span>${b.request_id}</span></div>
+      <div class="bill-row"><span>Ambulance</span><span>${b.ambulance_name || '—'}</span></div>
+      <div class="bill-row"><span>Destination</span><span>${b.destination || '—'}</span></div>
+      <div class="bill-row"><span>Distance Travelled</span><span>${formatDistance(dist)}</span></div>
+      <div class="bill-row"><span>Base Fee</span><span>Tsh ${base.toLocaleString()}</span></div>
+      <div class="bill-row"><span>Rate per KM</span><span>Tsh ${rate.toLocaleString()}</span></div>
+      <div class="bill-row"><span>Distance Charge</span><span>Tsh ${distFee.toLocaleString()}</span></div>`;
+
+    document.getElementById('bill-modal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('bill-modal').style.display = 'none';
+  }
+
+  // Close on backdrop click
+  document.getElementById('bill-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  loadBilling();
+</script>
+{% endblock %}

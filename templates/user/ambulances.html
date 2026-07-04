@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Available Ambulances{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Dispatch System</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item" href="/dashboard/user/"><span class="nav-icon material-icons-round">dashboard</span>Overview</a>
+      <a class="nav-item" href="/dashboard/user/map/"><span class="nav-icon material-icons-round">map</span>Live Map</a>
+      <div class="nav-section-label">Emergency</div>
+      <a class="nav-item active" href="/dashboard/user/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Available Ambulances</a>
+      <a class="nav-item" href="/dashboard/user/hospitals/"><span class="nav-icon material-icons-round">local_hospital</span>Nearby Hospitals</a>
+      <a class="nav-item" href="/dashboard/user/track/"><span class="nav-icon material-icons-round">location_on</span>Track Ambulance</a>
+      <div class="nav-section-label">My Account</div>
+      <a class="nav-item" href="/dashboard/user/history/"><span class="nav-icon material-icons-round">history</span>Request History</a>
+      <a class="nav-item" href="/dashboard/user/billing/"><span class="nav-icon material-icons-round">receipt_long</span>Billing</a>
+      <a class="nav-item" href="/dashboard/user/profile/"><span class="nav-icon material-icons-round">manage_accounts</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="user-avatar">U</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Loading…</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Available Ambulances</h1>
+        <p>Select an ambulance to request emergency transportation</p>
+      </div>
+      <div class="topbar-actions">
+        <a href="/dashboard/user/map/" class="btn btn-primary"
+           style="width:auto;padding:9px 18px;font-size:0.85rem;color:#fff;text-decoration:none;">
+          <span class="material-icons-round" style="font-size:18px;">map</span> Open Live Map
+        </a>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Mini Map -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+                  overflow:hidden;height:320px;margin-bottom:28px;position:relative;">
+        <div id="mini-map" style="width:100%;height:100%;"></div>
+        <div style="position:absolute;top:12px;right:12px;z-index:10;">
+          <a href="/dashboard/user/map/"
+             style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;
+                    padding:7px 14px;font-size:0.8rem;font-weight:600;color:var(--primary-light);
+                    text-decoration:none;display:flex;align-items:center;gap:6px;">
+            <span class="material-icons-round" style="font-size:16px;">open_in_full</span> Full Map
+          </a>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+        <div class="stat-card">
+          <div class="stat-icon green">🟢</div>
+          <div><div class="stat-value" id="count-available">—</div><div class="stat-label">Available</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">🔴</div>
+          <div><div class="stat-value" id="count-busy">—</div><div class="stat-label">Busy</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">🚑</div>
+          <div><div class="stat-value" id="count-total">—</div><div class="stat-label">Total Registered</div></div>
+        </div>
+      </div>
+
+      <div class="alert" id="page-alert"></div>
+
+      <!-- Ambulance Cards -->
+      <div id="ambulance-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+        <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
+          <div style="font-size:48px;margin-bottom:12px;">🚑</div>
+          <p>Loading ambulances…</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Request Confirmation Modal -->
+<div id="req-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+              padding:36px;width:100%;max-width:440px;margin:24px;animation:slideUp .3s ease;
+              text-align:center;">
+    <div style="font-size:52px;margin-bottom:12px;">🚑</div>
+    <h3 id="modal-amb-name" style="font-size:1.2rem;margin-bottom:6px;"></h3>
+    <p id="modal-route-info" style="font-size:0.875rem;color:var(--text-muted);margin-bottom:20px;"></p>
+
+    <div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:10px;
+                padding:16px;margin-bottom:24px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="color:var(--text-muted);font-size:0.85rem;">Base Fee</span>
+        <span style="font-weight:600;">Tsh 5,000</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="color:var(--text-muted);font-size:0.85rem;">Distance (<span id="modal-dist">—</span> km × Tsh 2,000)</span>
+        <span style="font-weight:600;" id="modal-dist-cost">—</span>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;
+                  display:flex;justify-content:space-between;">
+        <span style="font-weight:700;">Estimated Total</span>
+        <span style="font-weight:800;color:var(--primary-light);" id="modal-total">—</span>
+      </div>
+    </div>
+
+    <div class="alert" id="modal-alert"></div>
+
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-outline" onclick="closeModal()" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRequest()" style="flex:2;" id="submit-req-btn">
+        <span class="spinner" id="req-spinner"></span>
+        <span id="req-btn-text">🚨 Confirm Request</span>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/api.js' %}"></script>
+<script src="{% static 'js/map.js' %}"></script>
+<script>
+  API.requireAuth('user');
+  const name = API.getName() || 'User';
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('user-avatar').textContent  = name.charAt(0).toUpperCase();
+
+  let miniMap, allAmbulances = [];
+  let selectedAmb = null, userLat = null, userLng = null, routeInfo = null;
+
+  async function init() {
+    // Init mini map
+    miniMap = L.map('mini-map', { zoomControl: false, attributionControl: false })
+      .setView([-6.7924, 39.2083], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+    map = miniMap; // point global map to miniMap
+
+    // User location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+        miniMap.setView([userLat, userLng], 13);
+        placeUserMarker(userLat, userLng);
+      });
+    }
+
+    // Load ambulances
+    const res = await API.request('/api/ambulances/');
+    if (res?.ok) {
+      allAmbulances = await res.json();
+      updateCounts(allAmbulances);
+      renderCards(allAmbulances);
+      await loadAmbulances(() => {});
+    }
+  }
+
+  function updateCounts(list) {
+    document.getElementById('count-available').textContent = list.filter(a=>a.status==='available').length;
+    document.getElementById('count-busy').textContent      = list.filter(a=>a.status==='busy').length;
+    document.getElementById('count-total').textContent     = list.length;
+  }
+
+  function renderCards(list) {
+    const grid = document.getElementById('ambulance-grid');
+    if (!list.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
+        <div style="font-size:48px;margin-bottom:12px;">🚑</div>
+        <p>No ambulances registered yet.</p></div>`;
+      return;
+    }
+    grid.innerHTML = list.map(a => `
+      <div style="background:var(--bg-card);border:1px solid ${a.status==='available'?'rgba(16,185,129,0.3)':'var(--border)'};
+                  border-radius:14px;padding:24px;transition:var(--transition);
+                  ${a.status==='available'?'cursor:pointer;':''}"
+           ${a.status==='available' ? `onclick="openRequestModal(${a.id})"` : ''}
+           onmouseenter="this.style.transform='translateY(-3px)'"
+           onmouseleave="this.style.transform='translateY(0)'">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:36px;">🚑</div>
+          <span class="badge badge-${a.status}">${a.status}</span>
+        </div>
+        <h3 style="font-size:1rem;margin-bottom:4px;">${a.ambulance_name}</h3>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px;">🪪 ${a.plate_number}</p>
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+          <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
+            <span class="material-icons-round" style="font-size:14px;vertical-align:middle;">badge</span>
+            ${a.driver_name || 'No driver assigned'}
+          </p>
+        </div>
+        ${a.status === 'available' ? `
+        <button onclick="openRequestModal(${a.id})" class="btn btn-primary"
+                style="margin-top:14px;padding:10px;font-size:0.85rem;">
+          🚨 Request This Ambulance
+        </button>` : `
+        <div style="margin-top:14px;padding:10px;text-align:center;
+                    font-size:0.82rem;color:var(--text-muted);">
+          Currently unavailable
+        </div>`}
+      </div>`).join('');
+  }
+
+  async function openRequestModal(id) {
+    selectedAmb = allAmbulances.find(a => a.id === id);
+    if (!selectedAmb) return;
+    document.getElementById('modal-amb-name').textContent = selectedAmb.ambulance_name;
+    document.getElementById('modal-route-info').textContent = 'Calculating distance…';
+    document.getElementById('modal-dist').textContent      = '—';
+    document.getElementById('modal-dist-cost').textContent = '—';
+    document.getElementById('modal-total').textContent     = '—';
+    document.getElementById('modal-alert').className = 'alert';
+    document.getElementById('req-modal').style.display = 'flex';
+
+    if (userLat && userLng && selectedAmb.latitude && selectedAmb.longitude) {
+      const route = await drawRoute(
+        parseFloat(selectedAmb.latitude), parseFloat(selectedAmb.longitude),
+        userLat, userLng
+      );
+      if (route) {
+        routeInfo = route;
+        const distCost = parseFloat(route.distanceKm) * 2000;
+        const total    = 5000 + distCost;
+        document.getElementById('modal-route-info').textContent =
+          `📍 ${route.distanceKm} km · ~${route.durationMin} min ETA`;
+        document.getElementById('modal-dist').textContent      = route.distanceKm;
+        document.getElementById('modal-dist-cost').textContent = `Tsh ${distCost.toLocaleString()}`;
+        document.getElementById('modal-total').textContent     = `Tsh ${total.toLocaleString()}`;
+      } else {
+        document.getElementById('modal-route-info').textContent = 'Route unavailable — you will still be billed by actual distance.';
+      }
+    } else {
+      document.getElementById('modal-route-info').textContent = 'Enable GPS for distance estimate.';
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('req-modal').style.display = 'none';
+    clearRoute();
+  }
+
+  async function submitRequest() {
+    if (!selectedAmb) return;
+    document.getElementById('submit-req-btn').disabled = true;
+    document.getElementById('req-spinner').classList.add('show');
+    document.getElementById('req-btn-text').textContent = 'Sending…';
+
+    try {
+      const body = { ambulance: selectedAmb.id };
+      if (userLat) { body.pickup_latitude = userLat; body.pickup_longitude = userLng; }
+
+      const res  = await API.request('/api/requests/', { method: 'POST', body: JSON.stringify(body) });
+      const data = await res.json();
+
+      if (res.ok) {
+        closeModal();
+        document.getElementById('page-alert').className = 'alert alert-success show';
+        document.getElementById('page-alert').textContent = '✅ Ambulance requested! Redirecting to tracking…';
+        setTimeout(() => { window.location.href = '/dashboard/user/track/'; }, 2000);
+      } else {
+        const msg = Object.values(data).flat().join(' ');
+        document.getElementById('modal-alert').className = 'alert alert-error show';
+        document.getElementById('modal-alert').textContent = msg || 'Request failed.';
+      }
+    } catch(e) {
+      document.getElementById('modal-alert').className = 'alert alert-error show';
+      document.getElementById('modal-alert').textContent = 'Network error.';
+    } finally {
+      document.getElementById('submit-req-btn').disabled = false;
+      document.getElementById('req-spinner').classList.remove('show');
+      document.getElementById('req-btn-text').textContent = '🚨 Confirm Request';
+    }
+  }
+
+  init();
+</script>
+{% endblock %}

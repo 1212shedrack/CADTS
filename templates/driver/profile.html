@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Driver Profile{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Driver Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item" href="/dashboard/driver/"><span class="nav-icon material-icons-round">dashboard</span>Overview</a>
+      <a class="nav-item" href="/dashboard/driver/current/"><span class="nav-icon material-icons-round">directions_car</span>Current Request</a>
+      <div class="nav-section-label">My Activity</div>
+      <a class="nav-item" href="/dashboard/driver/history/"><span class="nav-icon material-icons-round">history</span>Trip History</a>
+      <a class="nav-item active" href="/dashboard/driver/profile/"><span class="nav-icon material-icons-round">manage_accounts</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="s-avatar">D</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Loading…</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title"><h1>Driver Profile</h1><p>Your account and license information</p></div>
+    </header>
+
+    <main class="page-content">
+      <div style="max-width:640px;margin:0 auto;">
+
+        <!-- Avatar / Header -->
+        <div style="background:linear-gradient(135deg,rgba(230,57,70,0.12),rgba(69,123,157,0.08));
+                    border:1px solid rgba(230,57,70,0.2);border-radius:16px;
+                    padding:32px;text-align:center;margin-bottom:24px;">
+          <div id="big-avatar"
+               style="width:80px;height:80px;border-radius:50%;
+                      background:linear-gradient(135deg,var(--primary),var(--secondary-light));
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:32px;font-weight:800;margin:0 auto 16px;">D</div>
+          <h2 id="profile-name" style="margin-bottom:4px;">Loading…</h2>
+          <p id="profile-email" style="color:var(--text-muted);font-size:0.875rem;margin-bottom:12px;"></p>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <span style="background:rgba(230,57,70,0.1);color:var(--primary-light);
+                         padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;">
+              🚑 Driver Account
+            </span>
+            <span id="approval-badge" style="padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;"></span>
+          </div>
+        </div>
+
+        <div class="alert" id="page-alert"></div>
+
+        <!-- My Ambulance -->
+        <div class="table-card" id="ambulance-card" style="padding:24px;margin-bottom:20px;display:none;">
+          <h3 style="font-size:1rem;margin-bottom:16px;">🚑 My Ambulance</h3>
+          <div id="ambulance-details"></div>
+        </div>
+
+        <!-- Personal Info -->
+        <div class="table-card" style="padding:28px;margin-bottom:20px;">
+          <h3 style="font-size:1rem;margin-bottom:20px;">Personal Information</h3>
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <div class="input-group">
+              <span class="input-icon material-icons-round">person</span>
+              <input type="text" id="f-name" class="form-input" placeholder="Your full name"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-group">
+              <span class="input-icon material-icons-round">email</span>
+              <input type="email" id="f-email" class="form-input" readonly style="opacity:0.6;cursor:not-allowed;"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <div class="input-group">
+              <span class="input-icon material-icons-round">phone</span>
+              <input type="tel" id="f-phone" class="form-input" placeholder="+255 7XX XXX XXX"/>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveProfile()" style="margin-top:8px;">
+            <span class="spinner" id="save-spinner"></span>
+            <span id="save-text">Save Changes</span>
+          </button>
+        </div>
+
+        <!-- Logout -->
+        <div class="table-card" style="padding:24px;">
+          <h3 style="font-size:1rem;margin-bottom:16px;color:#f87171;">Danger Zone</h3>
+          <button onclick="API.logout()" class="btn btn-outline"
+                  style="border-color:rgba(239,68,68,0.4);color:#f87171;">
+            <span class="material-icons-round" style="font-size:18px;">logout</span> Logout
+          </button>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('driver');
+
+  async function loadProfile() {
+    const res = await API.request('/api/auth/profile/');
+    if (!res?.ok) return;
+    const d = await res.json();
+    const name = d.full_name || 'Driver';
+
+    document.getElementById('profile-name').textContent  = name;
+    document.getElementById('profile-email').textContent = d.email;
+    document.getElementById('sidebar-name').textContent  = name;
+    document.getElementById('big-avatar').textContent    = name.charAt(0).toUpperCase();
+    document.getElementById('s-avatar').textContent      = name.charAt(0).toUpperCase();
+    document.getElementById('f-name').value  = name;
+    document.getElementById('f-email').value = d.email;
+    document.getElementById('f-phone').value = d.phone || '';
+
+    const badge = document.getElementById('approval-badge');
+    if (d.is_approved) {
+      badge.textContent = '✅ Approved';
+      badge.style.background = 'rgba(16,185,129,0.1)';
+      badge.style.color = '#34d399';
+    } else {
+      badge.textContent = '⏳ Pending Approval';
+      badge.style.background = 'rgba(245,158,11,0.1)';
+      badge.style.color = '#fcd34d';
+    }
+
+    // Load ambulance
+    const ambRes = await API.request('/api/ambulances/mine/');
+    if (ambRes?.ok) {
+      const amb = await ambRes.json();
+      document.getElementById('ambulance-card').style.display = '';
+      document.getElementById('ambulance-details').innerHTML = `
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-muted);font-size:0.875rem;">Ambulance Name</span>
+          <span style="font-weight:600;">${amb.ambulance_name}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-muted);font-size:0.875rem;">Plate Number</span>
+          <span style="font-weight:600;">${amb.plate_number}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;">
+          <span style="color:var(--text-muted);font-size:0.875rem;">Status</span>
+          <span class="badge badge-${amb.status}">${amb.status}</span>
+        </div>`;
+    }
+  }
+
+  async function saveProfile() {
+    document.getElementById('save-spinner').classList.add('show');
+    document.getElementById('save-text').textContent = 'Saving…';
+    const body = {
+      full_name: document.getElementById('f-name').value.trim(),
+      phone:     document.getElementById('f-phone').value.trim(),
+    };
+    const res  = await API.request('/api/auth/profile/', { method:'PATCH', body:JSON.stringify(body) });
+    const data = await res?.json();
+    document.getElementById('save-spinner').classList.remove('show');
+    document.getElementById('save-text').textContent = 'Save Changes';
+
+    if (res?.ok) {
+      if (data.full_name) localStorage.setItem('user_name', data.full_name);
+      showAlert('Profile updated!', 'success');
+      loadProfile();
+    } else {
+      showAlert(Object.values(data||{}).flat().join(' ')||'Failed.','error');
+    }
+  }
+
+  function showAlert(msg, type) {
+    const el = document.getElementById('page-alert');
+    el.className = `alert alert-${type} show`;
+    el.textContent = msg;
+    setTimeout(()=>el.className='alert',4000);
+  }
+
+  loadProfile();
+</script>
+{% endblock %}

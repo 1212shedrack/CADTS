@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Nearby Hospitals{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  .radius-btn {
+    padding: 7px 16px; border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-glass); color: var(--text-muted);
+    font-size: 0.82rem; font-weight: 500; cursor: pointer;
+    transition: var(--transition);
+  }
+  .radius-btn.active, .radius-btn:hover {
+    background: rgba(230,57,70,0.12);
+    border-color: rgba(230,57,70,0.4);
+    color: var(--primary-light);
+  }
+  #hosp-map { width:100%; height:340px; }
+  @media(max-width:900px){ #hosp-map{height:240px;} }
+  @media(max-width:480px){ #hosp-map{height:200px;} }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Sidebar overlay for mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Dispatch System</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item" href="/dashboard/user/"><span class="nav-icon material-icons-round">dashboard</span>Overview</a>
+      <a class="nav-item" href="/dashboard/user/map/"><span class="nav-icon material-icons-round">map</span>Live Map</a>
+      <div class="nav-section-label">Emergency</div>
+      <a class="nav-item" href="/dashboard/user/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Available Ambulances</a>
+      <a class="nav-item active" href="/dashboard/user/hospitals/"><span class="nav-icon material-icons-round">local_hospital</span>Nearby Hospitals</a>
+      <a class="nav-item" href="/dashboard/user/track/"><span class="nav-icon material-icons-round">location_on</span>Track Ambulance</a>
+      <div class="nav-section-label">My Account</div>
+      <a class="nav-item" href="/dashboard/user/history/"><span class="nav-icon material-icons-round">history</span>Request History</a>
+      <a class="nav-item" href="/dashboard/user/billing/"><span class="nav-icon material-icons-round">receipt_long</span>Billing</a>
+      <a class="nav-item" href="/dashboard/user/profile/"><span class="nav-icon material-icons-round">manage_accounts</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="user-avatar">U</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Loading…</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="hamburger-btn" onclick="toggleSidebar()">
+          <span class="material-icons-round">menu</span>
+        </button>
+        <div class="topbar-title">
+          <h1>Nearby Hospitals</h1>
+          <p>Hospitals and clinics found near your location via OpenStreetMap</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="searchHospitals()"
+                style="width:auto;padding:9px 18px;font-size:0.85rem;" id="refresh-btn">
+          <span class="material-icons-round" style="font-size:18px;">refresh</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- Map -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+                  overflow:hidden;margin-bottom:24px;">
+        <div id="hosp-map"></div>
+      </div>
+
+      <!-- Search Radius -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+        <span style="color:var(--text-secondary);font-size:0.875rem;font-weight:500;">Search radius:</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="radius-btn" data-r="2000"  onclick="setRadius(2000,this)">2 km</button>
+          <button class="radius-btn" data-r="5000"  onclick="setRadius(5000,this)">5 km</button>
+          <button class="radius-btn active" data-r="10000" onclick="setRadius(10000,this)">10 km</button>
+          <button class="radius-btn" data-r="20000" onclick="setRadius(20000,this)">20 km</button>
+          <button class="radius-btn" data-r="50000" onclick="setRadius(50000,this)">50 km</button>
+        </div>
+        <span style="font-size:0.82rem;color:var(--text-muted);" id="found-count"></span>
+      </div>
+
+      <div class="alert" id="page-alert"></div>
+
+      <!-- Hospital Cards -->
+      <div id="hospital-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
+        <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
+          <div style="font-size:48px;margin-bottom:12px;">📍</div>
+          <p>Detecting your location…</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('user');
+  const uname = API.getName() || 'User';
+  document.getElementById('sidebar-name').textContent = uname;
+  document.getElementById('user-avatar').textContent  = uname.charAt(0).toUpperCase();
+
+  /* ── Sidebar toggle ── */
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('show');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  }
+
+  /* ── State ── */
+  let hospMap, userLat = null, userLng = null, searchRadius = 10000;
+  let hospMarkers = [];
+
+  const hospIcon = L.divIcon({
+    className: '',
+    html: `<div style="background:linear-gradient(135deg,#e63946,#c1121f);border:2px solid #fff;
+                border-radius:8px;width:32px;height:32px;display:flex;align-items:center;
+                justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,0.4);">🏥</div>`,
+    iconSize:[32,32], iconAnchor:[16,16], popupAnchor:[0,-18],
+  });
+
+  const userIcon = L.divIcon({
+    className:'',
+    html:`<div style="width:20px;height:20px;background:#3b82f6;border:3px solid #fff;border-radius:50%;
+               box-shadow:0 0 0 4px rgba(59,130,246,0.3),0 2px 8px rgba(0,0,0,0.4);"></div>`,
+    iconSize:[20,20], iconAnchor:[10,10],
+  });
+
+  /* ── Haversine distance (km) ── */
+  function getDistKm(lat1, lng1, lat2, lng2) {
+    const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+    const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+
+  /* ── Init map ── */
+  async function init() {
+    hospMap = L.map('hosp-map', { zoomControl:true })
+              .setView([-6.17, 35.73], 6); // Tanzania overview
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:'© OpenStreetMap', maxZoom:19
+    }).addTo(hospMap);
+
+    if (!navigator.geolocation) {
+      showAlert('Your browser does not support GPS location.', 'error');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      hospMap.setView([userLat, userLng], 13);
+
+      // User marker + radius circle
+      L.marker([userLat, userLng], { icon: userIcon })
+       .addTo(hospMap)
+       .bindPopup('<b>📍 Your Location</b>').openPopup();
+
+      await searchHospitals();
+    }, () => {
+      showAlert('Location access denied. Please enable GPS to find nearby hospitals.', 'error');
+      document.getElementById('hospital-grid').innerHTML =
+        `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
+           <div style="font-size:48px;margin-bottom:12px;">📵</div>
+           <p>Location permission is required to find nearby hospitals.</p>
+           <p style="font-size:0.82rem;margin-top:8px;">Please allow location access in your browser settings and refresh.</p>
+         </div>`;
+    }, { enableHighAccuracy:true, timeout:12000 });
+  }
+
+  function showAlert(msg, type='error') {
+    const el = document.getElementById('page-alert');
+    el.className = `alert alert-${type} show`;
+    el.textContent = msg;
+    setTimeout(()=>el.className='alert',5000);
+  }
+
+  function setRadius(r, btn) {
+    searchRadius = r;
+    document.querySelectorAll('.radius-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (userLat) searchHospitals();
+  }
+
+  /* ── Search hospitals via Overpass ── */
+  async function searchHospitals() {
+    if (!userLat || !userLng) return;
+
+    document.getElementById('found-count').textContent = 'Searching…';
+    document.getElementById('hospital-grid').innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
+         <div style="font-size:48px;margin-bottom:12px;">🔍</div><p>Searching for hospitals…</p>
+       </div>`;
+
+    // Clear old markers
+    hospMarkers.forEach(m => hospMap.removeLayer(m));
+    hospMarkers = [];
+
+    /* Expanded query — covers hospitals, clinics, health centres, dispensaries, pharmacies
+       Uses both amenity= and healthcare= tags for maximum coverage in Africa/Tanzania */
+    const q = `
+      [out:json][timeout:30];
+      (
+        node["amenity"="hospital"](around:${searchRadius},${userLat},${userLng});
+        way["amenity"="hospital"](around:${searchRadius},${userLat},${userLng});
+        relation["amenity"="hospital"](around:${searchRadius},${userLat},${userLng});
+        node["amenity"="clinic"](around:${searchRadius},${userLat},${userLng});
+        way["amenity"="clinic"](around:${searchRadius},${userLat},${userLng});
+        node["amenity"="health_centre"](around:${searchRadius},${userLat},${userLng});
+        way["amenity"="health_centre"](around:${searchRadius},${userLat},${userLng});
+        node["amenity"="dispensary"](around:${searchRadius},${userLat},${userLng});
+        node["amenity"="pharmacy"](around:${searchRadius},${userLat},${userLng});
+        node["amenity"="doctors"](around:${searchRadius},${userLat},${userLng});
+        node["healthcare"="hospital"](around:${searchRadius},${userLat},${userLng});
+        way["healthcare"="hospital"](around:${searchRadius},${userLat},${userLng});
+        node["healthcare"="clinic"](around:${searchRadius},${userLat},${userLng});
+        node["healthcare"="centre"](around:${searchRadius},${userLat},${userLng});
+        node["healthcare"="health_centre"](around:${searchRadius},${userLat},${userLng});
+        node["healthcare"="pharmacy"](around:${searchRadius},${userLat},${userLng});
+      );
+      out center;
+    `;
+
+    let data = null;
+    const endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, { method:'POST', body:q });
+        if (res.ok) { data = await res.json(); break; }
+      } catch(e) { /* try next */ }
+    }
+
+    if (!data) {
+      document.getElementById('found-count').textContent = 'Error';
+      document.getElementById('hospital-grid').innerHTML =
+        `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
+           <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+           <p>Could not connect to map service. Check your internet and try again.</p>
+           <button onclick="searchHospitals()" class="btn btn-primary"
+                   style="width:auto;padding:10px 24px;margin-top:16px;">Try Again</button>
+         </div>`;
+      return;
+    }
+
+    const hospitals = [];
+    const seen = new Set();
+
+    data.elements.forEach(el => {
+      const lat = el.lat ?? el.center?.lat;
+      const lng = el.lon ?? el.center?.lon;
+      if (!lat || !lng) return;
+
+      // Deduplicate by coordinate
+      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      const name  = el.tags?.name || el.tags?.['name:en'] || 'Healthcare Facility';
+      const type  = el.tags?.amenity || el.tags?.healthcare || 'health facility';
+      const phone = el.tags?.phone || el.tags?.['contact:phone'] || '';
+      const dist  = getDistKm(userLat, userLng, lat, lng);
+
+      const marker = L.marker([lat,lng], { icon: hospIcon }).addTo(hospMap).bindPopup(`
+        <div style="min-width:180px;font-family:'Inter',sans-serif;">
+          <div style="font-weight:700;margin-bottom:4px;">🏥 ${name}</div>
+          <div style="font-size:0.8rem;color:#6b7280;text-transform:capitalize;">${type}</div>
+          ${phone ? `<div style="font-size:0.8rem;margin-top:4px;">📞 ${phone}</div>` : ''}
+          <div style="font-size:0.8rem;margin-top:4px;color:#10b981;">📏 ~${dist.toFixed(1)} km away</div>
+        </div>`, { maxWidth:240 });
+
+      hospMarkers.push(marker);
+      hospitals.push({ name, lat, lng, type, phone, dist });
+    });
+
+    // Sort nearest first
+    hospitals.sort((a,b) => a.dist - b.dist);
+
+    document.getElementById('found-count').textContent = `${hospitals.length} found`;
+
+    if (!hospitals.length) {
+      document.getElementById('hospital-grid').innerHTML =
+        `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
+           <div style="font-size:56px;margin-bottom:16px;">🏥</div>
+           <h3 style="margin-bottom:8px;">No hospitals found within ${searchRadius/1000} km</h3>
+           <p style="font-size:0.82rem;margin-top:8px;">Try increasing the search radius above.</p>
+         </div>`;
+      return;
+    }
+
+    document.getElementById('hospital-grid').innerHTML = hospitals.map(h => `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+                  padding:20px;transition:var(--transition);cursor:pointer;"
+           onclick="hospMap.flyTo([${h.lat},${h.lng}],16)"
+           onmouseenter="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(230,57,70,0.3)'"
+           onmouseleave="this.style.transform='translateY(0)';this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:44px;height:44px;background:rgba(230,57,70,0.12);border-radius:10px;
+                      display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🏥</div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;
+                      white-space:nowrap;margin:0;">${h.name}</p>
+            <p style="font-size:0.75rem;color:var(--text-muted);text-transform:capitalize;margin:2px 0 0;">
+              ${h.type} · 📏 ${h.dist.toFixed(1)} km away
+            </p>
+          </div>
+        </div>
+        ${h.phone ? `<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">📞 ${h.phone}</p>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="event.stopPropagation();hospMap.flyTo([${h.lat},${h.lng}],17)"
+                  style="flex:1;background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.2);
+                         border-radius:8px;padding:8px;color:var(--primary-light);font-size:0.8rem;
+                         cursor:pointer;font-weight:500;">📍 View on Map</button>
+          <button onclick="event.stopPropagation();window.open('https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}','_blank')"
+                  style="flex:1;background:var(--bg-glass);border:1px solid var(--border);
+                         border-radius:8px;padding:8px;color:var(--text-secondary);font-size:0.8rem;
+                         cursor:pointer;font-weight:500;">🗺️ Directions</button>
+        </div>
+      </div>`).join('');
+  }
+
+  init();
+</script>
+{% endblock %}

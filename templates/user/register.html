@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Register — User{% endblock %}
+{% block meta_description %}Create a user account on CADTS to request ambulances near you{% endblock %}
+
+{% block body %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🚑</div>
+      <div class="auth-logo-text">
+        <h1>CADTS</h1>
+        <p>Ambulance Dispatch System</p>
+      </div>
+    </div>
+
+    <h2 class="auth-title">Create Account</h2>
+    <p class="auth-subtitle">Register as a citizen to request emergency ambulances</p>
+
+    <!-- Alert -->
+    <div class="alert alert-error"   id="alert-error"></div>
+    <div class="alert alert-success" id="alert-success"></div>
+
+    <!-- Form -->
+    <form id="register-form" novalidate>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="first_name">First Name</label>
+          <div class="input-group">
+            <span class="input-icon material-icons-round">person</span>
+            <input type="text" id="first_name" class="form-input"
+                   placeholder="John" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="last_name">Last Name</label>
+          <div class="input-group">
+            <span class="input-icon material-icons-round">person_outline</span>
+            <input type="text" id="last_name" class="form-input"
+                   placeholder="Doe" required/>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <div class="input-group">
+          <span class="input-icon material-icons-round">mail</span>
+          <input type="email" id="email" class="form-input"
+                 placeholder="you@example.com" required autocomplete="email"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="phone">Phone Number</label>
+        <div class="input-group">
+          <span class="input-icon material-icons-round">phone</span>
+          <input type="tel" id="phone" class="form-input"
+                 placeholder="+255 7XX XXX XXX"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-group">
+          <span class="input-icon material-icons-round">lock</span>
+          <input type="password" id="password" class="form-input"
+                 placeholder="Minimum 6 characters" required/>
+          <button type="button" class="input-toggle" onclick="togglePassword('password', this)">
+            <span class="material-icons-round">visibility</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password2">Confirm Password</label>
+        <div class="input-group">
+          <span class="input-icon material-icons-round">lock_outline</span>
+          <input type="password" id="password2" class="form-input"
+                 placeholder="Re-enter password" required/>
+          <button type="button" class="input-toggle" onclick="togglePassword('password2', this)">
+            <span class="material-icons-round">visibility</span>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submit-btn">
+        <span class="spinner" id="submit-spinner"></span>
+        <span id="submit-text">Create Account</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a href="/accounts/login/">Sign in</a></p>
+      <p style="margin-top:8px;">Are you a driver? <a href="/accounts/register/driver/">Register as Driver</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon  = btn.querySelector('.material-icons-round');
+    input.type  = input.type === 'password' ? 'text' : 'password';
+    icon.textContent = input.type === 'password' ? 'visibility' : 'visibility_off';
+  }
+
+  function showAlert(msg, type) {
+    document.getElementById('alert-error').classList.remove('show');
+    document.getElementById('alert-success').classList.remove('show');
+    const el = document.getElementById(`alert-${type}`);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function setLoading(loading) {
+    const btn  = document.getElementById('submit-btn');
+    const spin = document.getElementById('submit-spinner');
+    const txt  = document.getElementById('submit-text');
+    btn.disabled = loading;
+    spin.classList.toggle('show', loading);
+    txt.textContent = loading ? 'Creating account…' : 'Create Account';
+  }
+
+  document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const first_name = document.getElementById('first_name').value.trim();
+    const last_name  = document.getElementById('last_name').value.trim();
+    const email      = document.getElementById('email').value.trim();
+    const phone      = document.getElementById('phone').value.trim();
+    const password   = document.getElementById('password').value;
+    const password2  = document.getElementById('password2').value;
+
+    if (!first_name || !last_name || !email || !password || !password2) {
+      showAlert('Please fill in all required fields.', 'error');
+      return;
+    }
+    if (password !== password2) {
+      showAlert('Passwords do not match.', 'error');
+      return;
+    }
+    if (password.length < 6) {
+      showAlert('Password must be at least 6 characters.', 'error');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/register/user/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ first_name, last_name, email, phone, password, password2 }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('access_token',  data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        localStorage.setItem('user_role',     data.user.role);
+        localStorage.setItem('user_name',     data.user.full_name);
+        localStorage.setItem('user_id',       data.user.id);
+
+        showAlert('Account created successfully! Redirecting…', 'success');
+        setTimeout(() => { window.location.href = '/dashboard/user/'; }, 1000);
+      } else {
+        const errors = Object.values(data).flat().join(' ');
+        showAlert(errors || 'Registration failed.', 'error');
+      }
+    } catch (err) {
+      showAlert('Network error. Please check your connection.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+{% endblock %}

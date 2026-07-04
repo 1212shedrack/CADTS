@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Live Map{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  body { overflow: hidden; }
+
+  .map-layout {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .map-sidebar {
+    width: 340px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .map-sidebar-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .map-sidebar-header a {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+  }
+  .map-sidebar-header a:hover { color: var(--primary-light); }
+  .map-sidebar-header h2 { font-size: 1rem; flex: 1; }
+
+  .map-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 4px;
+  }
+  .map-tab {
+    flex: 1; padding: 12px 8px;
+    text-align: center; font-size: 0.8rem; font-weight: 600;
+    border-bottom: 2px solid transparent;
+    cursor: pointer; color: var(--text-muted);
+    transition: var(--transition);
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .map-tab.active {
+    color: var(--primary-light);
+    border-bottom-color: var(--primary);
+  }
+
+  .map-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    transition: var(--transition);
+  }
+  .search-box:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(230,57,70,0.12);
+  }
+  .search-box input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text-primary); font-size: 0.875rem;
+    font-family: inherit;
+  }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .search-box .material-icons-round { color: var(--text-muted); font-size: 18px; }
+
+  /* Ambulance / Hospital List Item */
+  .list-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--bg-glass);
+  }
+  .list-item:hover {
+    background: rgba(230,57,70,0.06);
+    border-color: rgba(230,57,70,0.3);
+  }
+  .list-item.selected {
+    background: rgba(230,57,70,0.1);
+    border-color: var(--primary);
+  }
+  .list-item-icon {
+    font-size: 28px; flex-shrink: 0;
+  }
+  .list-item-info { flex: 1; min-width: 0; }
+  .list-item-info strong {
+    display: block; font-size: 0.875rem;
+    color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .list-item-info span {
+    font-size: 0.78rem; color: var(--text-muted);
+  }
+  .list-item-action { flex-shrink: 0; }
+
+  /* Request Panel */
+  .request-panel {
+    position: absolute;
+    bottom: 0; left: 340px; right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 20px 28px;
+    display: none;
+    align-items: center;
+    gap: 20px;
+    z-index: 20;
+    animation: slideUp 0.3s ease;
+  }
+  .request-panel.show { display: flex; }
+
+  /* Map Controls */
+  .map-controls {
+    position: absolute;
+    top: 16px; right: 16px;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .map-control-btn {
+    width: 40px; height: 40px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px; color: var(--text-secondary);
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+  }
+  .map-control-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary-light);
+  }
+
+  .loading-overlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 28px;
+    display: flex; align-items: center; gap: 12px;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .map-sidebar { width: 100%; height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .map-layout  { flex-direction: column; }
+    .map-wrapper { flex: 1; }
+    .request-panel { left: 0; }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="map-layout">
+
+  <!-- ══ LEFT SIDEBAR ══ -->
+  <div class="map-sidebar">
+
+    <!-- Header -->
+    <div class="map-sidebar-header">
+      <a href="/dashboard/user/" title="Back to Dashboard">
+        <span class="material-icons-round">arrow_back</span>
+      </a>
+      <h2>🗺️ Live Map</h2>
+      <button class="map-control-btn" onclick="centerOnUser()" title="My Location" style="width:36px;height:36px;">
+        <span class="material-icons-round" style="font-size:18px;">my_location</span>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="map-tabs">
+      <button class="map-tab active" onclick="switchTab('ambulances', this)" id="tab-amb">
+        🚑 Ambulances <span id="amb-count" style="font-size:0.7rem;background:var(--primary);color:#fff;padding:1px 6px;border-radius:999px;margin-left:4px;">—</span>
+      </button>
+      <button class="map-tab" onclick="switchTab('hospitals', this)" id="tab-hosp">
+        🏥 Hospitals <span id="hosp-count" style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 6px;border-radius:999px;margin-left:4px;">—</span>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="map-sidebar-content">
+
+      <!-- Search -->
+      <div class="search-box">
+        <span class="material-icons-round">search</span>
+        <input type="text" id="search-input" placeholder="Search…" oninput="handleSearch(this.value)"/>
+      </div>
+
+      <!-- Alert -->
+      <div class="alert" id="sidebar-alert" style="margin-bottom:12px;"></div>
+
+      <!-- Ambulance List -->
+      <div id="ambulance-list"></div>
+
+      <!-- Hospital List -->
+      <div id="hospital-list" style="display:none;"></div>
+
+    </div>
+  </div>
+
+  <!-- ══ MAP WRAPPER ══ -->
+  <div style="flex:1; position:relative;">
+
+    <!-- Map -->
+    <div id="map" style="width:100%; height:100%;"></div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="spinner show" style="border-color:rgba(230,57,70,0.3);border-top-color:var(--primary);"></div>
+      <span style="font-size:0.875rem;" id="loading-text">Getting your location…</span>
+    </div>
+
+    <!-- Map Controls -->
+    <div class="map-controls">
+      <button class="map-control-btn" onclick="reloadAmbulances()" title="Refresh ambulances">
+        <span class="material-icons-round">refresh</span>
+      </button>
+      <button class="map-control-btn" onclick="toggleHospitals()" title="Toggle hospitals" id="toggle-hosp-btn">
+        <span class="material-icons-round">local_hospital</span>
+      </button>
+      <button class="map-control-btn" onclick="clearRoute()" title="Clear route">
+        <span class="material-icons-round">route</span>
+      </button>
+    </div>
+
+    <!-- Legend -->
+    <div style="position:absolute;bottom:16px;left:16px;z-index:15;
+                background:var(--bg-card);border:1px solid var(--border);
+                border-radius:10px;padding:12px 16px;font-size:0.78rem;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:16px;">🚑</span>
+        <span class="status-dot" style="background:#10b981;"></span> Available
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:16px;">🚑</span>
+        <span class="status-dot" style="background:#ef4444;"></span> Busy
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:16px;">🏥</span>
+        <span class="status-dot" style="background:#e63946;"></span> Hospital
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">📍</span>
+        <span class="status-dot" style="background:#3b82f6;"></span> You
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REQUEST PANEL ══ -->
+  <div class="request-panel" id="request-panel">
+    <div style="font-size:32px;">🚑</div>
+    <div style="flex:1;">
+      <p style="font-weight:700;font-size:1rem;margin:0;" id="req-amb-name">Ambulance</p>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin:4px 0 0;" id="req-route-info">
+        Calculating route…
+      </p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+      <div id="req-cost" style="font-size:0.85rem;color:var(--text-secondary);"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-outline" onclick="cancelRequest()" style="padding:9px 18px;font-size:0.85rem;">
+          Cancel
+        </button>
+        <button class="btn btn-primary" onclick="confirmRequest()" style="width:auto;padding:9px 22px;font-size:0.85rem;" id="confirm-req-btn">
+          <span class="spinner" id="req-spinner"></span>
+          <span id="req-btn-text">🚨 Request Now</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- API helper -->
+<script src="{% static 'js/api.js' %}"></script>
+<!-- Map module -->
+<script src="{% static 'js/map.js' %}"></script>
+
+<script>
+  API.requireAuth('user');
+
+  let currentTab         = 'ambulances';
+  let allAmbulances      = [];
+  let allHospitals       = [];
+  let hospitalsVisible   = true;
+  let userLat = null, userLng = null;
+  let pendingAmbulance   = null;
+  let pendingRouteInfo   = null;
+
+  // ── Callback when user selects an ambulance from popup ───────────────────
+  function onAmbulanceSelected(id, name) {
+    const amb = allAmbulances.find(a => a.id === id);
+    if (!amb || !userLat || !userLng) return;
+    showRequestPanel(amb);
+  }
+
+  async function showRequestPanel(amb) {
+    pendingAmbulance = amb;
+    document.getElementById('req-amb-name').textContent = `🚑 ${amb.ambulance_name}`;
+    document.getElementById('req-route-info').textContent = 'Calculating route…';
+    document.getElementById('req-cost').textContent = '';
+    document.getElementById('request-panel').classList.add('show');
+
+    if (amb.latitude && amb.longitude) {
+      const route = await drawRoute(
+        parseFloat(amb.latitude), parseFloat(amb.longitude),
+        userLat, userLng
+      );
+      if (route) {
+        pendingRouteInfo = route;
+        const cost = 5000 + (parseFloat(route.distanceKm) * 2000);
+        document.getElementById('req-route-info').textContent =
+          `📍 ${route.distanceKm} km away · ~${route.durationMin} min · Est. Tsh ${cost.toLocaleString()}`;
+        document.getElementById('req-cost').textContent = `Est. Tsh ${cost.toLocaleString()}`;
+      } else {
+        document.getElementById('req-route-info').textContent = 'Route unavailable';
+      }
+    } else {
+      document.getElementById('req-route-info').textContent = 'Ambulance location not set';
+    }
+  }
+
+  function cancelRequest() {
+    pendingAmbulance = null;
+    pendingRouteInfo = null;
+    document.getElementById('request-panel').classList.remove('show');
+    clearRoute();
+  }
+
+  async function confirmRequest() {
+    if (!pendingAmbulance) return;
+    if (!userLat || !userLng) {
+      showSidebarAlert('Cannot determine your location. Please enable GPS.', 'error');
+      return;
+    }
+
+    document.getElementById('confirm-req-btn').disabled = true;
+    document.getElementById('req-spinner').classList.add('show');
+    document.getElementById('req-btn-text').textContent = 'Requesting…';
+
+    try {
+      const res = await API.request('/api/requests/', {
+        method: 'POST',
+        body: JSON.stringify({
+          ambulance:        pendingAmbulance.id,
+          pickup_latitude:  userLat,
+          pickup_longitude: userLng,
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        document.getElementById('request-panel').classList.remove('show');
+        showSidebarAlert('✅ Ambulance requested! Driver will confirm shortly.', 'success');
+        setTimeout(() => { window.location.href = '/dashboard/user/track/'; }, 2000);
+      } else {
+        const msg = Object.values(data).flat().join(' ');
+        showSidebarAlert(msg || 'Request failed. Please try again.', 'error');
+      }
+    } catch(e) {
+      showSidebarAlert('Network error. Please check connection.', 'error');
+    } finally {
+      document.getElementById('confirm-req-btn').disabled = false;
+      document.getElementById('req-spinner').classList.remove('show');
+      document.getElementById('req-btn-text').textContent = '🚨 Request Now';
+    }
+  }
+
+  // ── Tab Switching ─────────────────────────────────────────────────────────
+  function switchTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.map-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('ambulance-list').style.display = tab === 'ambulances' ? '' : 'none';
+    document.getElementById('hospital-list').style.display  = tab === 'hospitals'  ? '' : 'none';
+    document.getElementById('search-input').value = '';
+  }
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  function handleSearch(q) {
+    q = q.toLowerCase();
+    if (currentTab === 'ambulances') renderAmbulanceList(allAmbulances.filter(a =>
+      a.ambulance_name.toLowerCase().includes(q) || a.plate_number.toLowerCase().includes(q)
+    ));
+    else renderHospitalList(allHospitals.filter(h =>
+      h.name.toLowerCase().includes(q)
+    ));
+  }
+
+  // ── Ambulance List ────────────────────────────────────────────────────────
+  function renderAmbulanceList(list) {
+    const el = document.getElementById('ambulance-list');
+    if (!list.length) {
+      el.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-muted);">
+        <div style="font-size:40px;margin-bottom:8px;">🚑</div>
+        <p>No available ambulances nearby</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(a => `
+      <div class="list-item ${selectedAmbulance?.id === a.id ? 'selected' : ''}"
+           onclick="flyToAmbulance(${a.id})" id="amb-item-${a.id}">
+        <div class="list-item-icon">${a.status === 'available' ? '🟢' : '🔴'}🚑</div>
+        <div class="list-item-info">
+          <strong>${a.ambulance_name}</strong>
+          <span>🪪 ${a.plate_number} · ${a.driver_name || 'No driver'}</span>
+        </div>
+        <div class="list-item-action">
+          <span class="badge badge-${a.status}" style="font-size:0.7rem;">${a.status}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function flyToAmbulance(id) {
+    const a = allAmbulances.find(x => x.id === id);
+    if (!a || !a.latitude || !a.longitude) return;
+    map.flyTo([parseFloat(a.latitude), parseFloat(a.longitude)], 15, { duration: 1 });
+    const marker = ambulanceMarkers[id];
+    if (marker) setTimeout(() => marker.openPopup(), 1000);
+  }
+
+  // ── Hospital List ─────────────────────────────────────────────────────────
+  function renderHospitalList(list) {
+    const el = document.getElementById('hospital-list');
+    if (!list.length) {
+      el.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-muted);">
+        <div style="font-size:40px;margin-bottom:8px;">🏥</div>
+        <p>No hospitals found nearby</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map((h, i) => `
+      <div class="list-item" onclick="map.flyTo([${h.lat},${h.lng}],17)">
+        <div class="list-item-icon">🏥</div>
+        <div class="list-item-info">
+          <strong>${h.name}</strong>
+          <span style="text-transform:capitalize;">${h.type}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Reload ────────────────────────────────────────────────────────────────
+  async function reloadAmbulances() {
+    document.getElementById('loading-text').textContent = 'Refreshing ambulances…';
+    document.getElementById('loading-overlay').style.display = 'flex';
+    allAmbulances = await loadAmbulances(onAmbulanceSelected) || [];
+    document.getElementById('amb-count').textContent = allAmbulances.filter(a=>a.status==='available').length;
+    renderAmbulanceList(allAmbulances);
+    document.getElementById('loading-overlay').style.display = 'none';
+  }
+
+  async function toggleHospitals() {
+    if (hospitalsVisible) {
+      hospitalMarkers.forEach(m => map.removeLayer(m));
+      hospitalMarkers = [];
+      allHospitals    = [];
+      renderHospitalList([]);
+      document.getElementById('hosp-count').textContent = '0';
+    } else {
+      await fetchHospitals();
+    }
+    hospitalsVisible = !hospitalsVisible;
+  }
+
+  async function fetchHospitals() {
+    if (!userLat || !userLng) return;
+    document.getElementById('loading-text').textContent = 'Finding nearby hospitals…';
+    document.getElementById('loading-overlay').style.display = 'flex';
+    allHospitals = await loadHospitals(userLat, userLng, 5000);
+    document.getElementById('hosp-count').textContent = allHospitals.length;
+    renderHospitalList(allHospitals);
+    document.getElementById('loading-overlay').style.display = 'none';
+  }
+
+  function centerOnUser() {
+    if (userLat && userLng) {
+      map.flyTo([userLat, userLng], 15, { duration: 1 });
+    } else {
+      locateUser((lat, lng) => {
+        userLat = lat; userLng = lng;
+        map.flyTo([lat, lng], 15);
+      });
+    }
+  }
+
+  function showSidebarAlert(msg, type) {
+    const el = document.getElementById('sidebar-alert');
+    el.className = `alert alert-${type} show`;
+    el.textContent = msg;
+    if (type === 'success') setTimeout(() => el.className = 'alert', 4000);
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  async function init() {
+    initMap();
+
+    // Get user location
+    locateUser(async (lat, lng) => {
+      userLat = lat;
+      userLng = lng;
+
+      document.getElementById('loading-text').textContent = 'Loading ambulances…';
+
+      // Load ambulances
+      allAmbulances = await loadAmbulances(onAmbulanceSelected) || [];
+      document.getElementById('amb-count').textContent =
+        allAmbulances.filter(a => a.status === 'available').length;
+      renderAmbulanceList(allAmbulances);
+
+      // Load hospitals
+      document.getElementById('loading-text').textContent = 'Finding hospitals…';
+      allHospitals = await loadHospitals(lat, lng, 5000);
+      document.getElementById('hosp-count').textContent = allHospitals.length;
+      renderHospitalList(allHospitals);
+
+      document.getElementById('loading-overlay').style.display = 'none';
+
+      // Start watching position
+      watchUserLocation();
+    });
+  }
+
+  init();
+
+  // Auto-refresh ambulances every 30 seconds
+  setInterval(reloadAmbulances, 30000);
+</script>
+{% endblock %}

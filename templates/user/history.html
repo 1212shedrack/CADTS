@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}My Request History{% endblock %}
+
+{% block extra_css %}
+<style>
+  .status-timeline {
+    display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:6px;
+  }
+  .tl-dot {
+    width:8px; height:8px; border-radius:50%; background:var(--border);
+  }
+  .tl-dot.filled { background:var(--primary); }
+  .tl-line {
+    flex:1; max-width:24px; height:2px; background:var(--border);
+  }
+  .tl-line.filled { background:var(--primary); }
+
+  .filter-tab {
+    padding:7px 16px; border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--bg-glass); color:var(--text-muted);
+    font-size:0.82rem; font-weight:500; cursor:pointer; transition:var(--transition);
+  }
+  .filter-tab.active, .filter-tab:hover {
+    background:rgba(230,57,70,0.12); border-color:rgba(230,57,70,0.4); color:var(--primary-light);
+  }
+  .req-card {
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:14px; padding:20px 24px;
+    margin-bottom:14px; transition:var(--transition);
+  }
+  .req-card:hover { border-color:rgba(230,57,70,0.3); transform:translateX(4px); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Dispatch System</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item" href="/dashboard/user/"><span class="nav-icon material-icons-round">dashboard</span>Overview</a>
+      <a class="nav-item" href="/dashboard/user/map/"><span class="nav-icon material-icons-round">map</span>Live Map</a>
+      <div class="nav-section-label">Emergency</div>
+      <a class="nav-item" href="/dashboard/user/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Available Ambulances</a>
+      <a class="nav-item" href="/dashboard/user/hospitals/"><span class="nav-icon material-icons-round">local_hospital</span>Nearby Hospitals</a>
+      <a class="nav-item" href="/dashboard/user/track/"><span class="nav-icon material-icons-round">location_on</span>Track Ambulance</a>
+      <div class="nav-section-label">My Account</div>
+      <a class="nav-item active" href="/dashboard/user/history/"><span class="nav-icon material-icons-round">history</span>Request History</a>
+      <a class="nav-item" href="/dashboard/user/billing/"><span class="nav-icon material-icons-round">receipt_long</span>Billing</a>
+      <a class="nav-item" href="/dashboard/user/profile/"><span class="nav-icon material-icons-round">manage_accounts</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar" id="user-avatar">U</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Loading…</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Request History</h1>
+        <p>All your past and active ambulance requests</p>
+      </div>
+      <div class="topbar-actions">
+        <a href="/dashboard/user/ambulances/" class="btn btn-primary"
+           style="width:auto;padding:9px 18px;font-size:0.85rem;text-decoration:none;color:#fff;">
+          <span class="material-icons-round" style="font-size:18px;">emergency</span> New Request
+        </a>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px;">
+        <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total Requests</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="s-completed">—</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="s-cancelled">—</div><div class="stat-label">Cancelled</div></div></div>
+        <div class="stat-card"><div class="stat-icon amber">💰</div><div><div class="stat-value" id="s-spent">—</div><div class="stat-label">Total Spent (Tsh)</div></div></div>
+      </div>
+
+      <!-- Filter -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="filter-tab active" onclick="filterReqs('all',this)">All</button>
+        <button class="filter-tab" onclick="filterReqs('pending',this)">⏳ Pending</button>
+        <button class="filter-tab" onclick="filterReqs('accepted',this)">🔵 Active</button>
+        <button class="filter-tab" onclick="filterReqs('completed',this)">✅ Completed</button>
+        <button class="filter-tab" onclick="filterReqs('rejected',this)">❌ Rejected</button>
+        <button class="filter-tab" onclick="filterReqs('cancelled',this)">🚫 Cancelled</button>
+      </div>
+
+      <div class="alert" id="page-alert"></div>
+
+      <!-- Requests List -->
+      <div id="requests-list"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+              padding:32px;width:100%;max-width:480px;margin:24px;animation:slideUp .3s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <h3>Request Details</h3>
+      <button onclick="closeDetail()" class="material-icons-round"
+              style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;">close</button>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('user');
+  const name = API.getName() || 'User';
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('user-avatar').textContent  = name.charAt(0).toUpperCase();
+
+  let allRequests = [];
+
+  const STATUS_COLORS = {
+    pending:'#f59e0b', accepted:'#3b82f6', arrived:'#8b5cf6',
+    patient_picked:'#f59e0b', completed:'#10b981',
+    rejected:'#ef4444', cancelled:'#6b7280',
+  };
+
+  async function loadHistory() {
+    const res = await API.request('/api/requests/my/');
+    if (!res?.ok) return;
+    allRequests = await res.json();
+    updateStats(allRequests);
+    renderList(allRequests);
+  }
+
+  function updateStats(list) {
+    document.getElementById('s-total').textContent     = list.length;
+    document.getElementById('s-completed').textContent = list.filter(r=>r.status==='completed').length;
+    document.getElementById('s-cancelled').textContent = list.filter(r=>r.status==='cancelled').length;
+    const spent = list.reduce((s,r)=>s+(parseFloat(r.total_cost)||0),0);
+    document.getElementById('s-spent').textContent     = spent.toLocaleString();
+  }
+
+  function filterReqs(status, btn) {
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = status === 'all' ? allRequests
+      : status === 'accepted' ? allRequests.filter(r=>['accepted','arrived','patient_picked'].includes(r.status))
+      : allRequests.filter(r=>r.status===status);
+    renderList(filtered);
+  }
+
+  function formatDistance(dist) {
+    if (!dist) return '';
+    const km = parseFloat(dist);
+    const m = Math.round(km * 1000);
+    if (km < 1) {
+      return `${m} meters`;
+    }
+    return `${km.toFixed(2)} km (${m.toLocaleString()} meters)`;
+  }
+
+  function renderList(list) {
+    const el = document.getElementById('requests-list');
+    if (!list.length) {
+      el.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-muted);
+                       background:var(--bg-card);border:1px solid var(--border);border-radius:14px;">
+        <div style="font-size:48px;margin-bottom:12px;">📋</div>
+        <p>No requests found.</p></div>`;
+      return;
+    }
+
+    const isActive = s => ['pending','accepted','arrived','patient_picked'].includes(s);
+
+    el.innerHTML = list.map(r => {
+      const color = STATUS_COLORS[r.status] || '#6b7280';
+      const active = isActive(r.status);
+      return `
+      <div class="req-card" style="${active?'border-color:rgba(230,57,70,0.3);':''}">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;
+                      background:${color}22;display:flex;align-items:center;justify-content:center;
+                      font-size:20px;">
+            ${r.status==='completed'?'✅':r.status==='rejected'?'❌':r.status==='cancelled'?'🚫':'🚑'}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <p style="font-weight:700;margin:0;">Request #${r.id}</p>
+              <span style="font-size:0.72rem;font-weight:600;padding:2px 10px;border-radius:999px;
+                           background:${color}22;color:${color};">${r.status.replace('_',' ')}</span>
+              ${active?'<span style="font-size:0.72rem;background:rgba(230,57,70,0.1);color:#f87171;padding:2px 8px;border-radius:999px;animation:pulse 2s infinite;">● LIVE</span>':''}
+            </div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 6px;">
+              🚑 ${r.ambulance_name} · ${new Date(r.created_at).toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+            </p>
+            ${r.destination_hospital?`<p style="font-size:0.82rem;color:var(--text-muted);margin:0;">🏥 ${r.destination_hospital}</p>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            ${r.total_cost?`<p style="font-weight:700;color:var(--primary-light);margin:0 0 6px;">Tsh ${Number(r.total_cost).toLocaleString()}</p>`:''}
+            ${r.distance?`<p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 8px;">${formatDistance(r.distance)}</p>`:''}
+            <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+              <button onclick="showDetail(${r.id})"
+                      style="background:var(--bg-glass);border:1px solid var(--border);border-radius:6px;
+                             padding:5px 12px;color:var(--text-secondary);font-size:0.78rem;cursor:pointer;">
+                Details
+              </button>
+              ${active?`<a href="/dashboard/user/track/" style="background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:6px;padding:5px 12px;color:var(--primary-light);font-size:0.78rem;text-decoration:none;">
+                📍 Track
+              </a>`:''}
+              ${r.status==='pending'?`<button onclick="cancelReq(${r.id})"
+                style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);
+                       border-radius:6px;padding:5px 12px;color:#f87171;font-size:0.78rem;cursor:pointer;">
+                Cancel
+              </button>`:''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function showDetail(id) {
+    const r = allRequests.find(x=>x.id===id);
+    if (!r) return;
+    const color = STATUS_COLORS[r.status] || '#6b7280';
+    document.getElementById('detail-content').innerHTML = `
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:8px;">
+          ${r.status==='completed'?'✅':r.status==='rejected'?'❌':r.status==='cancelled'?'🚫':'🚑'}
+        </div>
+        <span style="background:${color}22;color:${color};padding:4px 14px;border-radius:999px;font-size:0.82rem;font-weight:600;">
+          ${r.status.replace('_',' ')}
+        </span>
+      </div>
+      ${row('Request #', r.id)}
+      ${row('Ambulance', r.ambulance_name)}
+      ${row('Date', new Date(r.created_at).toLocaleString())}
+      ${row('Pickup', r.pickup_latitude?`${parseFloat(r.pickup_latitude).toFixed(5)}, ${parseFloat(r.pickup_longitude).toFixed(5)}`:'—')}
+      ${row('Destination', r.destination_hospital||'—')}
+      ${row('Notes', r.notes||'—')}
+      ${r.distance?row('Distance', formatDistance(r.distance)):''}
+      ${r.total_cost?row('Total Cost','Tsh '+Number(r.total_cost).toLocaleString(),true):''}
+    `;
+    document.getElementById('detail-modal').style.display = 'flex';
+  }
+
+  function row(label, value, highlight=false) {
+    return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="color:var(--text-muted);font-size:0.875rem;">${label}</span>
+      <span style="font-weight:600;${highlight?'color:var(--primary-light);font-size:1rem;':''}">${value}</span>
+    </div>`;
+  }
+
+  function closeDetail() { document.getElementById('detail-modal').style.display='none'; }
+
+  async function cancelReq(id) {
+    if (!confirm('Cancel this request?')) return;
+    const res = await API.request(`/api/requests/${id}/cancel/`, {method:'POST'});
+    if (res?.ok) {
+      document.getElementById('page-alert').className = 'alert alert-success show';
+      document.getElementById('page-alert').textContent = 'Request cancelled.';
+      loadHistory();
+      setTimeout(()=>document.getElementById('page-alert').className='alert',3000);
+    }
+  }
+
+  loadHistory();
+</script>
+{% endblock %}

@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Ambulance Management{% endblock %}
+
+{% block extra_css %}
+<style>
+  .action-btn {
+    background:var(--bg-glass); border:1px solid var(--border);
+    border-radius:6px; padding:5px 10px; cursor:pointer;
+    color:var(--text-secondary); font-size:0.8rem;
+    transition:var(--transition); display:inline-flex; align-items:center; gap:4px;
+  }
+  .action-btn:hover { border-color:var(--primary); color:var(--primary-light); }
+  .action-btn.danger:hover { border-color:#ef4444; color:#f87171; }
+  select.form-input option { background:#1a1d2e; color:#f1f1f1; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item" href="/dashboard/admin/"><span class="nav-icon material-icons-round">dashboard</span>Dashboard</a>
+      <div class="nav-section-label">Management</div>
+      <a class="nav-item" href="/dashboard/admin/users/"><span class="nav-icon material-icons-round">group</span>Users</a>
+      <a class="nav-item" href="/dashboard/admin/drivers/"><span class="nav-icon material-icons-round">badge</span>Drivers</a>
+      <a class="nav-item active" href="/dashboard/admin/ambulances/"><span class="nav-icon material-icons-round">emergency</span>Ambulances</a>
+      <div class="nav-section-label">Operations</div>
+      <a class="nav-item" href="/dashboard/admin/requests/"><span class="nav-icon material-icons-round">assignment</span>All Requests</a>
+      <a class="nav-item" href="/dashboard/admin/reports/"><span class="nav-icon material-icons-round">bar_chart</span>Reports</a>
+      <div class="nav-section-label">System</div>
+      <a class="nav-item" href="/dashboard/admin/settings/"><span class="nav-icon material-icons-round">settings</span>Settings</a>
+      <a class="nav-item" href="/admin/"><span class="nav-icon material-icons-round">admin_panel_settings</span>Django Admin</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="API.logout()">
+        <div class="sidebar-avatar">A</div>
+        <div class="sidebar-user-info"><p id="sidebar-name">Administrator</p><p>Click to logout</p></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Ambulance Management</h1>
+        <p>Register, edit, assign drivers and manage ambulance status</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" style="width:auto;padding:9px 18px;font-size:0.85rem;"
+                onclick="openModal()">
+          <span class="material-icons-round" style="font-size:18px;">add</span> Add Ambulance
+        </button>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Stats Row -->
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px;">
+        <div class="stat-card"><div class="stat-icon green">🟢</div><div><div class="stat-value" id="s-available">—</div><div class="stat-label">Available</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">🔴</div><div><div class="stat-value" id="s-busy">—</div><div class="stat-label">Busy</div></div></div>
+        <div class="stat-card"><div class="stat-icon amber">🔧</div><div><div class="stat-value" id="s-maintenance">—</div><div class="stat-label">Maintenance</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">📴</div><div><div class="stat-value" id="s-offline">—</div><div class="stat-label">Offline</div></div></div>
+      </div>
+
+      <!-- Alert -->
+      <div class="alert" id="page-alert"></div>
+
+      <!-- Table -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>All Ambulances</h3>
+          <input type="text" id="search-input" placeholder="🔍 Search…"
+                 style="background:var(--bg-input);border:1px solid var(--border);
+                        border-radius:8px;padding:8px 14px;color:var(--text-primary);
+                        font-size:0.85rem;outline:none;width:220px;"
+                 oninput="filterTable(this.value)"/>
+        </div>
+        <div class="table-responsive">
+          <table id="amb-table">
+            <thead>
+              <tr>
+                <th>#</th><th>Name</th><th>Plate</th><th>Driver</th>
+                <th>Status</th><th>Registered</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="amb-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">
+                <span class="material-icons-round" style="font-size:40px;display:block;margin-bottom:10px;">local_shipping</span>
+                No ambulances registered yet
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ══ ADD / EDIT MODAL ══ -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+              padding:36px;width:100%;max-width:480px;margin:24px;animation:slideUp .3s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <h3 id="modal-title" style="font-size:1.2rem;">Add New Ambulance</h3>
+      <button onclick="closeModal()" style="background:none;border:none;color:var(--text-muted);
+              font-size:24px;cursor:pointer;" class="material-icons-round">close</button>
+    </div>
+
+    <div class="alert" id="modal-alert"></div>
+
+    <div class="form-group">
+      <label class="form-label">Ambulance Name</label>
+      <div class="input-group">
+        <span class="input-icon material-icons-round">emergency</span>
+        <input type="text" id="f-name" class="form-input" placeholder="e.g. Ambulance Alpha"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Plate Number</label>
+      <div class="input-group">
+        <span class="input-icon material-icons-round">pin</span>
+        <input type="text" id="f-plate" class="form-input" placeholder="e.g. T 123 ABC"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Assign Driver <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+      <div class="input-group">
+        <span class="input-icon material-icons-round">badge</span>
+        <select id="f-driver" class="form-input" style="appearance:none;">
+          <option value="">— No driver yet —</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Initial Status</label>
+      <div class="input-group">
+        <span class="input-icon material-icons-round">traffic</span>
+        <select id="f-status" class="form-input" style="appearance:none;">
+          <option value="available">Available</option>
+          <option value="offline" selected>Offline</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button class="btn btn-outline" onclick="closeModal()" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveAmbulance()" style="flex:2;">
+        <span class="spinner" id="modal-spinner"></span>
+        <span id="modal-save-text">Save Ambulance</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Driver Modal -->
+<div id="assign-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+              padding:36px;width:100%;max-width:420px;margin:24px;animation:slideUp .3s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <h3 style="font-size:1.1rem;">Assign Driver</h3>
+      <button onclick="closeAssign()" style="background:none;border:none;color:var(--text-muted);
+              font-size:24px;cursor:pointer;" class="material-icons-round">close</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:20px;" id="assign-amb-name">Ambulance: —</p>
+    <div class="alert" id="assign-alert"></div>
+    <div class="form-group">
+      <label class="form-label">Select Driver</label>
+      <select id="assign-driver-select" class="form-input" style="appearance:none;">
+        <option value="">— Unassign Driver —</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button class="btn btn-outline" onclick="closeAssign()" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAssign()" style="flex:2;">Assign</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+  API.requireAuth('admin');
+  document.getElementById('sidebar-name').textContent = API.getName() || 'Administrator';
+
+  let ambulances = [];
+  let editId     = null;
+  let assignId   = null;
+
+  // ── Load ─────────────────────────────────────────────────────────────────
+  async function loadAmbulances() {
+    const res = await API.request('/api/ambulances/');
+    if (!res?.ok) return;
+    ambulances = await res.json();
+    renderTable(ambulances);
+    updateStats(ambulances);
+  }
+
+  function updateStats(list) {
+    document.getElementById('s-available').textContent   = list.filter(a=>a.status==='available').length;
+    document.getElementById('s-busy').textContent        = list.filter(a=>a.status==='busy').length;
+    document.getElementById('s-maintenance').textContent = list.filter(a=>a.status==='maintenance').length;
+    document.getElementById('s-offline').textContent     = list.filter(a=>a.status==='offline').length;
+  }
+
+  function renderTable(list) {
+    const tbody = document.getElementById('amb-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">
+        <span class="material-icons-round" style="font-size:40px;display:block;margin-bottom:10px;">local_shipping</span>
+        No ambulances registered yet
+      </td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(a => `
+      <tr>
+        <td style="color:var(--text-muted);">#${a.id}</td>
+        <td style="font-weight:600;color:var(--text-primary);">${a.ambulance_name}</td>
+        <td>${a.plate_number}</td>
+        <td>${a.driver_name || '<span style="color:var(--text-muted);">Unassigned</span>'}</td>
+        <td><span class="badge badge-${a.status}">${a.status}</span></td>
+        <td>${new Date(a.created_at).toLocaleDateString()}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="action-btn" onclick="openEdit(${a.id})">
+            <span class="material-icons-round" style="font-size:15px;">edit</span> Edit
+          </button>
+          <button class="action-btn" onclick="openAssign(${a.id},'${a.ambulance_name}')">
+            <span class="material-icons-round" style="font-size:15px;">badge</span> Assign
+          </button>
+          <button class="action-btn danger" onclick="deleteAmbulance(${a.id},'${a.ambulance_name}')">
+            <span class="material-icons-round" style="font-size:15px;">delete</span>
+          </button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function filterTable(q) {
+    const filtered = ambulances.filter(a =>
+      a.ambulance_name.toLowerCase().includes(q.toLowerCase()) ||
+      a.plate_number.toLowerCase().includes(q.toLowerCase()) ||
+      (a.driver_name||'').toLowerCase().includes(q.toLowerCase())
+    );
+    renderTable(filtered);
+  }
+
+  // ── Modal: Add / Edit ─────────────────────────────────────────────────────
+  async function openModal() {
+    editId = null;
+    document.getElementById('modal-title').textContent    = 'Add New Ambulance';
+    document.getElementById('modal-save-text').textContent= 'Save Ambulance';
+    document.getElementById('f-name').value  = '';
+    document.getElementById('f-plate').value = '';
+    document.getElementById('f-status').value= 'offline';
+    document.getElementById('modal-alert').className = 'alert';
+    await loadDriverChoices('f-driver');
+    showOverlay('modal-overlay');
+  }
+
+  async function openEdit(id) {
+    editId = id;
+    const a = ambulances.find(x => x.id === id);
+    if (!a) return;
+    document.getElementById('modal-title').textContent    = 'Edit Ambulance';
+    document.getElementById('modal-save-text').textContent= 'Update Ambulance';
+    document.getElementById('f-name').value   = a.ambulance_name;
+    document.getElementById('f-plate').value  = a.plate_number;
+    document.getElementById('f-status').value = a.status;
+    document.getElementById('modal-alert').className = 'alert';
+    await loadDriverChoices('f-driver', a.driver);
+    showOverlay('modal-overlay');
+  }
+
+  async function loadDriverChoices(selectId, currentDriverId = null) {
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = '<option value="">— No driver —</option>';
+    try {
+      // All approved drivers (not just unassigned, to allow reassignment in edit)
+      const res = await API.request('/api/drivers/');
+      if (res?.ok) {
+        const drivers = await res.json();
+        drivers.filter(d => d.is_approved).forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = `${d.full_name} (${d.email})`;
+          if (currentDriverId && d.id === currentDriverId) opt.selected = true;
+          sel.appendChild(opt);
+        });
+      }
+    } catch(e) {}
+  }
+
+  function closeModal() { hideOverlay('modal-overlay'); }
+
+  async function saveAmbulance() {
+    const name   = document.getElementById('f-name').value.trim();
+    const plate  = document.getElementById('f-plate').value.trim();
+    const driver = document.getElementById('f-driver').value;
+    const st     = document.getElementById('f-status').value;
+
+    if (!name || !plate) {
+      showModalAlert('Name and plate number are required.', 'modal-alert');
+      return;
+    }
+
+    setModalLoading(true);
+    const body = { ambulance_name: name, plate_number: plate, status: st };
+    if (driver) body.driver = parseInt(driver);
+
+    const url    = editId ? `/api/ambulances/${editId}/` : '/api/ambulances/';
+    const method = editId ? 'PATCH' : 'POST';
+
+    try {
+      const res = await API.request(url, { method, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (res.ok) {
+        closeModal();
+        showPageAlert(editId ? 'Ambulance updated!' : 'Ambulance registered!', 'success');
+        loadAmbulances();
+      } else {
+        const msg = Object.values(data).flat().join(' ');
+        showModalAlert(msg || 'Failed to save.', 'modal-alert');
+      }
+    } catch(e) {
+      showModalAlert('Network error.', 'modal-alert');
+    } finally {
+      setModalLoading(false);
+    }
+  }
+
+  // ── Assign Driver Modal ───────────────────────────────────────────────────
+  async function openAssign(id, name) {
+    assignId = id;
+    document.getElementById('assign-amb-name').textContent = `Ambulance: ${name}`;
+    document.getElementById('assign-alert').className = 'alert';
+    await loadDriverChoices('assign-driver-select');
+    const a = ambulances.find(x => x.id === id);
+    if (a?.driver) {
+      const opt = document.querySelector(`#assign-driver-select option[value="${a.driver}"]`);
+      if (opt) opt.selected = true;
+    }
+    showOverlay('assign-overlay');
+  }
+
+  function closeAssign() { hideOverlay('assign-overlay'); }
+
+  async function confirmAssign() {
+    const driverId = document.getElementById('assign-driver-select').value;
+    try {
+      const res = await API.request(`/api/ambulances/${assignId}/assign/`, {
+        method: 'POST',
+        body: JSON.stringify({ driver_id: driverId ? parseInt(driverId) : null }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        closeAssign();
+        showPageAlert(data.message || 'Driver assigned!', 'success');
+        loadAmbulances();
+      } else {
+        document.getElementById('assign-alert').className = 'alert alert-error show';
+        document.getElementById('assign-alert').textContent = data.error || 'Failed.';
+      }
+    } catch(e) {}
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────────
+  async function deleteAmbulance(id, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    const res = await API.request(`/api/ambulances/${id}/`, { method: 'DELETE' });
+    if (res?.status === 204) {
+      showPageAlert(`"${name}" deleted.`, 'success');
+      loadAmbulances();
+    } else {
+      showPageAlert('Delete failed.', 'error');
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function showOverlay(id) { document.getElementById(id).style.display = 'flex'; }
+  function hideOverlay(id) { document.getElementById(id).style.display = 'none'; }
+
+  function showPageAlert(msg, type) {
+    const el = document.getElementById('page-alert');
+    el.className = `alert alert-${type} show`;
+    el.textContent = msg;
+    setTimeout(() => el.className = 'alert', 4000);
+  }
+
+  function showModalAlert(msg, id) {
+    const el = document.getElementById(id);
+    el.className = 'alert alert-error show';
+    el.textContent = msg;
+  }
+
+  function setModalLoading(loading) {
+    document.getElementById('modal-save-btn').disabled = loading;
+    document.getElementById('modal-spinner').classList.toggle('show', loading);
+  }
+
+  loadAmbulances();
+</script>
+{% endblock %}

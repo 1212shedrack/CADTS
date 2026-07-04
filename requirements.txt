@@ -1,0 +1,19 @@
+# requirements.txt – CADTS Project Dependencies
+
+# Core
+django==6.0.6
+djangorestframework==3.17.1
+
+# Database
+mysqlclient==2.2.8
+mysql-connector-python
+
+# Authentication
+djangorestframework-simplejwt==5.5.1
+
+# CORS
+django-cors-headers==4.9.0
+
+# WebSockets / Async
+channels==4.3.2
+daphne==4.2.2
