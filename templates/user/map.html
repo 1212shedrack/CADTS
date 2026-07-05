@@ -6,7 +6,7 @@
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  body { overflow: hidden; }
+  body { overflow-x: hidden; overflow-y: auto; }
 
   .map-layout {
     display: flex;
@@ -179,10 +179,18 @@
   }
 
   @media (max-width: 768px) {
-    .map-sidebar { width: 100%; height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
-    .map-layout  { flex-direction: column; }
-    .map-wrapper { flex: 1; }
-    .request-panel { left: 0; }
+    .map-layout  { flex-direction: column; height: auto; min-height: 100dvh; }
+    .map-sidebar { width: 100%; height: auto; max-height: 42vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .map-layout > div:nth-child(2) { height: 58vh; min-height: 320px; }
+    .request-panel {
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      padding: 16px 18px;
+    }
+    .request-panel > div:first-child { font-size: 28px; }
   }
 </style>
 {% endblock %}

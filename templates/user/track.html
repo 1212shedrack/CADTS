@@ -5,7 +5,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  body { overflow:hidden; }
+  body { overflow-x:hidden; overflow-y:auto; }
   .track-layout { display:flex; height:100vh; }
 
   /* Status Steps */
@@ -28,6 +28,31 @@
     100% { transform:translateX(4px); }
   }
   .car-anim { animation:carMove 0.8s ease-in-out infinite alternate; display:inline-block; }
+
+  @media (max-width: 768px) {
+    .track-layout { flex-direction: column; height: auto; min-height: 100dvh; }
+    .track-layout > div:first-child {
+      width: 100% !important;
+      border-right: none !important;
+      border-bottom: 1px solid var(--border);
+      overflow: visible;
+    }
+    .track-layout > div:nth-child(2) {
+      min-height: 56vh;
+    }
+    .track-layout > div:nth-child(2) #track-map {
+      min-height: 56vh;
+    }
+    #eta-chip {
+      left: 12px !important;
+      right: 12px !important;
+      transform: none !important;
+      width: auto;
+      flex-wrap: wrap;
+      justify-content: center;
+      text-align: center;
+    }
+  }
 </style>
 {% endblock %}
 

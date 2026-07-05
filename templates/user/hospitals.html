@@ -24,9 +24,6 @@
 {% endblock %}
 
 {% block body %}
-<!-- Sidebar overlay for mobile -->
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
 <div class="dashboard-layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -56,14 +53,9 @@
 
   <div class="main-content">
     <header class="topbar">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <button class="hamburger-btn" onclick="toggleSidebar()">
-          <span class="material-icons-round">menu</span>
-        </button>
-        <div class="topbar-title">
-          <h1>Nearby Hospitals</h1>
-          <p>Hospitals and clinics found near your location via OpenStreetMap</p>
-        </div>
+      <div class="topbar-title">
+        <h1>Nearby Hospitals</h1>
+        <p>Hospitals and clinics found near your location via OpenStreetMap</p>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-primary" onclick="searchHospitals()"
@@ -115,16 +107,6 @@
   const uname = API.getName() || 'User';
   document.getElementById('sidebar-name').textContent = uname;
   document.getElementById('user-avatar').textContent  = uname.charAt(0).toUpperCase();
-
-  /* ── Sidebar toggle ── */
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebar-overlay').classList.toggle('show');
-  }
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('show');
-  }
 
   /* ── State ── */
   let hospMap, userLat = null, userLng = null, searchRadius = 10000;

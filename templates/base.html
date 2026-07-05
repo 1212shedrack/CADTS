@@ -21,9 +21,60 @@
 </head>
 <body>
 
+<button type="button" class="global-mobile-menu-btn" id="global-mobile-menu-btn" aria-label="Open navigation menu">
+  <span class="material-icons-round">menu</span>
+</button>
+
 {% block body %}{% endblock %}
 
 {% block extra_js %}{% endblock %}
+
+<script>
+  (function () {
+    const menuButton = document.getElementById('global-mobile-menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    if (!menuButton || !sidebar) {
+      if (menuButton) menuButton.style.display = 'none';
+      return;
+    }
+
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'sidebar-overlay';
+      document.body.appendChild(overlay);
+    }
+
+    const menuIcon = menuButton.querySelector('.material-icons-round');
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('show');
+      menuButton.classList.add('is-open');
+      menuButton.setAttribute('aria-label', 'Close navigation menu');
+      if (menuIcon) menuIcon.textContent = 'close';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+      menuButton.classList.remove('is-open');
+      menuButton.setAttribute('aria-label', 'Open navigation menu');
+      if (menuIcon) menuIcon.textContent = 'menu';
+      document.body.style.overflow = '';
+    }
+
+    window.toggleSidebar = function () {
+      if (sidebar.classList.contains('open')) closeSidebar();
+      else openSidebar();
+    };
+    window.closeSidebar = closeSidebar;
+
+    menuButton.addEventListener('click', window.toggleSidebar);
+    overlay.addEventListener('click', closeSidebar);
+  }());
+</script>
 
 </body>
 </html>
