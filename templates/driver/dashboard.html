@@ -8,7 +8,7 @@
   <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">emergency</span></div>
       <div class="sidebar-brand-text">
         <h2>CADTS</h2>
         <p>Driver Panel</p>
@@ -92,15 +92,15 @@
         <div style="display:flex; align-items:center; gap:16px;">
           <span class="material-icons-round" style="color:#f87171; font-size:32px; animation:pulse 1s infinite;">notifications_active</span>
           <div style="flex:1;">
-            <p style="color:#f1f1f1; font-weight:700; font-size:1rem; margin:0;">🚨 New Ambulance Request!</p>
+            <p style="color:#f1f1f1; font-weight:700; font-size:1rem; margin:0;"><span class="material-icons-round" style="font-size:18px;vertical-align:middle;color:#f87171;">warning</span> New Ambulance Request!</p>
             <p style="margin:4px 0 0; font-size:0.875rem; color:#fca5a5;" id="incoming-detail">A patient needs assistance.</p>
           </div>
           <div style="display:flex; gap:10px;">
             <button onclick="respondToRequest('accept')" class="btn btn-primary" style="width:auto; padding:10px 20px; font-size:0.85rem;">
-              ✓ Accept
+              <span class="material-icons-round" style="font-size:16px;">check_circle</span> Accept
             </button>
             <button onclick="respondToRequest('reject')" class="btn btn-outline" style="padding:10px 20px; font-size:0.85rem; border-color:rgba(239,68,68,0.4); color:#f87171;">
-              ✗ Reject
+              <span class="material-icons-round" style="font-size:16px;">cancel</span> Reject
             </button>
           </div>
         </div>
@@ -109,28 +109,28 @@
       <!-- Stats -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon green">✅</div>
+          <div class="stat-icon green"><span class="material-icons-round">check_circle</span></div>
           <div>
             <div class="stat-value" id="stat-completed">—</div>
             <div class="stat-label">Trips Completed</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon blue">🗺️</div>
+          <div class="stat-icon blue"><span class="material-icons-round">map</span></div>
           <div>
             <div class="stat-value" id="stat-distance">—</div>
             <div class="stat-label">Total KM Driven</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon amber">⏱️</div>
+          <div class="stat-icon amber"><span class="material-icons-round">schedule</span></div>
           <div>
             <div class="stat-value" id="stat-today">—</div>
             <div class="stat-label">Today's Trips</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon red">❌</div>
+          <div class="stat-icon red"><span class="material-icons-round">cancel</span></div>
           <div>
             <div class="stat-value" id="stat-rejected">—</div>
             <div class="stat-label">Rejected Requests</div>
@@ -138,7 +138,7 @@
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+      <div class="content-grid even">
 
         <!-- Recent Trips -->
         <div class="table-card">
@@ -173,7 +173,7 @@
           <h3 style="margin-bottom:20px; font-size:1rem;">My Ambulance</h3>
           <div id="ambulance-info">
             <div style="text-align:center; padding:32px 0; color:var(--text-muted);">
-              <div style="font-size:48px; margin-bottom:8px;">🚑</div>
+              <div style="font-size:48px; margin-bottom:8px;"><span class="material-icons-round" style="font-size:48px;">emergency</span></div>
               <p>No ambulance assigned yet.</p>
               <p style="font-size:0.8rem; margin-top:4px;">Contact your administrator.</p>
             </div>
@@ -314,7 +314,7 @@
         const amb = await res.json();
         document.getElementById('ambulance-info').innerHTML = `
           <div style="text-align:center; margin-bottom:20px;">
-            <div style="font-size:48px;">🚑</div>
+            <div style="font-size:48px;"><span class="material-icons-round" style="font-size:48px;">emergency</span></div>
             <p style="font-size:1.1rem; font-weight:700; margin:8px 0 4px;">${amb.ambulance_name}</p>
             <span class="badge badge-${amb.status.toLowerCase()}">${amb.status}</span>
           </div>

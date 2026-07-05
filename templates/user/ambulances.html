@@ -10,7 +10,7 @@
 <div class="dashboard-layout">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">emergency</span></div>
       <div class="sidebar-brand-text"><h2>CADTS</h2><p>Dispatch System</p></div>
     </div>
     <nav class="sidebar-nav">
@@ -65,17 +65,17 @@
       </div>
 
       <!-- Stats Row -->
-      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+      <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:24px;">
         <div class="stat-card">
-          <div class="stat-icon green">🟢</div>
+          <div class="stat-icon green"><span class="material-icons-round">circle</span></div>
           <div><div class="stat-value" id="count-available">—</div><div class="stat-label">Available</div></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon red">🔴</div>
+          <div class="stat-icon red"><span class="material-icons-round">circle</span></div>
           <div><div class="stat-value" id="count-busy">—</div><div class="stat-label">Busy</div></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon blue">🚑</div>
+          <div class="stat-icon blue"><span class="material-icons-round">emergency</span></div>
           <div><div class="stat-value" id="count-total">—</div><div class="stat-label">Total Registered</div></div>
         </div>
       </div>
@@ -85,7 +85,7 @@
       <!-- Ambulance Cards -->
       <div id="ambulance-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
         <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
-          <div style="font-size:48px;margin-bottom:12px;">🚑</div>
+          <div style="font-size:48px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:48px;">emergency</span></div>
           <p>Loading ambulances…</p>
         </div>
       </div>
@@ -100,7 +100,7 @@
   <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
               padding:36px;width:100%;max-width:440px;margin:24px;animation:slideUp .3s ease;
               text-align:center;">
-    <div style="font-size:52px;margin-bottom:12px;">🚑</div>
+    <div style="font-size:52px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:52px;">emergency</span></div>
     <h3 id="modal-amb-name" style="font-size:1.2rem;margin-bottom:6px;"></h3>
     <p id="modal-route-info" style="font-size:0.875rem;color:var(--text-muted);margin-bottom:20px;"></p>
 
@@ -127,7 +127,7 @@
       <button class="btn btn-outline" onclick="closeModal()" style="flex:1;">Cancel</button>
       <button class="btn btn-primary" onclick="submitRequest()" style="flex:2;" id="submit-req-btn">
         <span class="spinner" id="req-spinner"></span>
-        <span id="req-btn-text">🚨 Confirm Request</span>
+        <span id="req-btn-text"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">warning</span> Confirm Request</span>
       </button>
     </div>
   </div>
@@ -187,7 +187,7 @@
     const grid = document.getElementById('ambulance-grid');
     if (!list.length) {
       grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
-        <div style="font-size:48px;margin-bottom:12px;">🚑</div>
+        <div style="font-size:48px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:48px;">emergency</span></div>
         <p>No ambulances registered yet.</p></div>`;
       return;
     }
@@ -198,12 +198,12 @@
            ${a.status==='available' ? `onclick="openRequestModal(${a.id})"` : ''}
            onmouseenter="this.style.transform='translateY(-3px)'"
            onmouseleave="this.style.transform='translateY(0)'">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-          <div style="font-size:36px;">🚑</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:36px;"><span class="material-icons-round" style="font-size:36px;">emergency</span></div>
           <span class="badge badge-${a.status}">${a.status}</span>
         </div>
         <h3 style="font-size:1rem;margin-bottom:4px;">${a.ambulance_name}</h3>
-        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px;">🪪 ${a.plate_number}</p>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px;"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">badge</span> ${a.plate_number}</p>
         <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
           <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
             <span class="material-icons-round" style="font-size:14px;vertical-align:middle;">badge</span>
@@ -213,7 +213,7 @@
         ${a.status === 'available' ? `
         <button onclick="openRequestModal(${a.id})" class="btn btn-primary"
                 style="margin-top:14px;padding:10px;font-size:0.85rem;">
-          🚨 Request This Ambulance
+          <span class="material-icons-round" style="font-size:16px;vertical-align:middle;">warning</span> Request This Ambulance
         </button>` : `
         <div style="margin-top:14px;padding:10px;text-align:center;
                     font-size:0.82rem;color:var(--text-muted);">
@@ -242,8 +242,8 @@
         routeInfo = route;
         const distCost = parseFloat(route.distanceKm) * 2000;
         const total    = 5000 + distCost;
-        document.getElementById('modal-route-info').textContent =
-          `📍 ${route.distanceKm} km · ~${route.durationMin} min ETA`;
+        document.getElementById('modal-route-info').innerHTML =
+          `<span class="material-icons-round" style="font-size:14px;vertical-align:middle;">location_on</span> ${route.distanceKm} km · ~${route.durationMin} min ETA`;
         document.getElementById('modal-dist').textContent      = route.distanceKm;
         document.getElementById('modal-dist-cost').textContent = `Tsh ${distCost.toLocaleString()}`;
         document.getElementById('modal-total').textContent     = `Tsh ${total.toLocaleString()}`;
@@ -276,7 +276,7 @@
       if (res.ok) {
         closeModal();
         document.getElementById('page-alert').className = 'alert alert-success show';
-        document.getElementById('page-alert').textContent = '✅ Ambulance requested! Redirecting to tracking…';
+        document.getElementById('page-alert').innerHTML = '<span class="material-icons-round" style="font-size:16px;vertical-align:middle;">check_circle</span> Ambulance requested! Redirecting to tracking…';
         setTimeout(() => { window.location.href = '/dashboard/user/track/'; }, 2000);
       } else {
         const msg = Object.values(data).flat().join(' ');
@@ -289,7 +289,7 @@
     } finally {
       document.getElementById('submit-req-btn').disabled = false;
       document.getElementById('req-spinner').classList.remove('show');
-      document.getElementById('req-btn-text').textContent = '🚨 Confirm Request';
+      document.getElementById('req-btn-text').innerHTML = '<span class="material-icons-round" style="font-size:16px;vertical-align:middle;">warning</span> Confirm Request';
     }
   }
 

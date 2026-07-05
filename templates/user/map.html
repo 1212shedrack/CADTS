@@ -6,7 +6,7 @@
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  body { overflow: hidden; }
+  body { overflow-x: hidden; overflow-y: auto; }
 
   .map-layout {
     display: flex;
@@ -179,10 +179,18 @@
   }
 
   @media (max-width: 768px) {
-    .map-sidebar { width: 100%; height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
-    .map-layout  { flex-direction: column; }
-    .map-wrapper { flex: 1; }
-    .request-panel { left: 0; }
+    .map-layout  { flex-direction: column; height: auto; min-height: 100dvh; }
+    .map-sidebar { width: 100%; height: auto; max-height: 42vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .map-layout > div:nth-child(2) { height: 58vh; min-height: 320px; }
+    .request-panel {
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      padding: 16px 18px;
+    }
+    .request-panel > div:first-child { font-size: 28px; }
   }
 </style>
 {% endblock %}
@@ -198,7 +206,7 @@
       <a href="/dashboard/user/" title="Back to Dashboard">
         <span class="material-icons-round">arrow_back</span>
       </a>
-      <h2>🗺️ Live Map</h2>
+      <h2><span class="material-icons-round" style="font-size:22px;vertical-align:middle;">map</span> Live Map</h2>
       <button class="map-control-btn" onclick="centerOnUser()" title="My Location" style="width:36px;height:36px;">
         <span class="material-icons-round" style="font-size:18px;">my_location</span>
       </button>
@@ -207,10 +215,10 @@
     <!-- Tabs -->
     <div class="map-tabs">
       <button class="map-tab active" onclick="switchTab('ambulances', this)" id="tab-amb">
-        🚑 Ambulances <span id="amb-count" style="font-size:0.7rem;background:var(--primary);color:#fff;padding:1px 6px;border-radius:999px;margin-left:4px;">—</span>
+        <span class="material-icons-round" style="font-size:16px;vertical-align:middle;">emergency</span> Ambulances <span id="amb-count" style="font-size:0.7rem;background:var(--primary);color:#fff;padding:1px 6px;border-radius:999px;margin-left:4px;">—</span>
       </button>
       <button class="map-tab" onclick="switchTab('hospitals', this)" id="tab-hosp">
-        🏥 Hospitals <span id="hosp-count" style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 6px;border-radius:999px;margin-left:4px;">—</span>
+        <span class="material-icons-round" style="font-size:16px;vertical-align:middle;">local_hospital</span> Hospitals <span id="hosp-count" style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 6px;border-radius:999px;margin-left:4px;">—</span>
       </button>
     </div>
 
@@ -265,19 +273,19 @@
                 background:var(--bg-card);border:1px solid var(--border);
                 border-radius:10px;padding:12px 16px;font-size:0.78rem;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="font-size:16px;">🚑</span>
+          <span class="material-icons-round" style="font-size:16px;">emergency</span>
         <span class="status-dot" style="background:#10b981;"></span> Available
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="font-size:16px;">🚑</span>
+          <span class="material-icons-round" style="font-size:16px;">emergency</span>
         <span class="status-dot" style="background:#ef4444;"></span> Busy
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="font-size:16px;">🏥</span>
+          <span class="material-icons-round" style="font-size:16px;">local_hospital</span>
         <span class="status-dot" style="background:#e63946;"></span> Hospital
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;">📍</span>
+          <span class="material-icons-round" style="font-size:16px;">location_on</span>
         <span class="status-dot" style="background:#3b82f6;"></span> You
       </div>
     </div>
@@ -285,7 +293,7 @@
 
   <!-- ══ REQUEST PANEL ══ -->
   <div class="request-panel" id="request-panel">
-    <div style="font-size:32px;">🚑</div>
+    <div style="font-size:32px;"><span class="material-icons-round" style="font-size:32px;">emergency</span></div>
     <div style="flex:1;">
       <p style="font-weight:700;font-size:1rem;margin:0;" id="req-amb-name">Ambulance</p>
       <p style="font-size:0.82rem;color:var(--text-muted);margin:4px 0 0;" id="req-route-info">
@@ -300,7 +308,7 @@
         </button>
         <button class="btn btn-primary" onclick="confirmRequest()" style="width:auto;padding:9px 22px;font-size:0.85rem;" id="confirm-req-btn">
           <span class="spinner" id="req-spinner"></span>
-          <span id="req-btn-text">🚨 Request Now</span>
+          <span id="req-btn-text"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">warning</span> Request Now</span>
         </button>
       </div>
     </div>
@@ -337,7 +345,7 @@
 
   async function showRequestPanel(amb) {
     pendingAmbulance = amb;
-    document.getElementById('req-amb-name').textContent = `🚑 ${amb.ambulance_name}`;
+    document.getElementById('req-amb-name').innerHTML = `<span class="material-icons-round" style="font-size:18px;vertical-align:middle;">emergency</span> ${amb.ambulance_name}`;
     document.getElementById('req-route-info').textContent = 'Calculating route…';
     document.getElementById('req-cost').textContent = '';
     document.getElementById('request-panel').classList.add('show');
@@ -350,8 +358,8 @@
       if (route) {
         pendingRouteInfo = route;
         const cost = 5000 + (parseFloat(route.distanceKm) * 2000);
-        document.getElementById('req-route-info').textContent =
-          `📍 ${route.distanceKm} km away · ~${route.durationMin} min · Est. Tsh ${cost.toLocaleString()}`;
+        document.getElementById('req-route-info').innerHTML =
+          `<span class="material-icons-round" style="font-size:14px;vertical-align:middle;">location_on</span> ${route.distanceKm} km away · ~${route.durationMin} min · Est. Tsh ${cost.toLocaleString()}`;
         document.getElementById('req-cost').textContent = `Est. Tsh ${cost.toLocaleString()}`;
       } else {
         document.getElementById('req-route-info').textContent = 'Route unavailable';
@@ -392,7 +400,7 @@
 
       if (res.ok) {
         document.getElementById('request-panel').classList.remove('show');
-        showSidebarAlert('✅ Ambulance requested! Driver will confirm shortly.', 'success');
+        showSidebarAlert('Ambulance requested! Driver will confirm shortly.', 'success');
         setTimeout(() => { window.location.href = '/dashboard/user/track/'; }, 2000);
       } else {
         const msg = Object.values(data).flat().join(' ');
@@ -403,7 +411,7 @@
     } finally {
       document.getElementById('confirm-req-btn').disabled = false;
       document.getElementById('req-spinner').classList.remove('show');
-      document.getElementById('req-btn-text').textContent = '🚨 Request Now';
+      document.getElementById('req-btn-text').innerHTML = '<span class="material-icons-round" style="font-size:16px;vertical-align:middle;">warning</span> Request Now';
     }
   }
 
@@ -433,17 +441,17 @@
     const el = document.getElementById('ambulance-list');
     if (!list.length) {
       el.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-muted);">
-        <div style="font-size:40px;margin-bottom:8px;">🚑</div>
+        <div style="font-size:40px;margin-bottom:8px;"><span class="material-icons-round" style="font-size:40px;">emergency</span></div>
         <p>No available ambulances nearby</p></div>`;
       return;
     }
     el.innerHTML = list.map(a => `
       <div class="list-item ${selectedAmbulance?.id === a.id ? 'selected' : ''}"
            onclick="flyToAmbulance(${a.id})" id="amb-item-${a.id}">
-        <div class="list-item-icon">${a.status === 'available' ? '🟢' : '🔴'}🚑</div>
+        <div class="list-item-icon"><span class="material-icons-round" style="font-size:28px;color:${a.status === 'available' ? '#10b981' : '#ef4444'};">emergency</span></div>
         <div class="list-item-info">
           <strong>${a.ambulance_name}</strong>
-          <span>🪪 ${a.plate_number} · ${a.driver_name || 'No driver'}</span>
+          <span><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">badge</span> ${a.plate_number} · ${a.driver_name || 'No driver'}</span>
         </div>
         <div class="list-item-action">
           <span class="badge badge-${a.status}" style="font-size:0.7rem;">${a.status}</span>
@@ -464,13 +472,13 @@
     const el = document.getElementById('hospital-list');
     if (!list.length) {
       el.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-muted);">
-        <div style="font-size:40px;margin-bottom:8px;">🏥</div>
+        <div style="font-size:40px;margin-bottom:8px;"><span class="material-icons-round" style="font-size:40px;">local_hospital</span></div>
         <p>No hospitals found nearby</p></div>`;
       return;
     }
     el.innerHTML = list.map((h, i) => `
       <div class="list-item" onclick="map.flyTo([${h.lat},${h.lng}],17)">
-        <div class="list-item-icon">🏥</div>
+        <div class="list-item-icon"><span class="material-icons-round" style="font-size:28px;">local_hospital</span></div>
         <div class="list-item-info">
           <strong>${h.name}</strong>
           <span style="text-transform:capitalize;">${h.type}</span>

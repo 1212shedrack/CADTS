@@ -6,7 +6,7 @@
 <div class="dashboard-layout">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">admin_panel_settings</span></div>
       <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
     </div>
     <nav class="sidebar-nav">
@@ -55,8 +55,8 @@
       <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
         <button class="filter-tab active" onclick="filterDrivers('all', this)" id="tab-all">All Drivers</button>
         <button class="filter-tab" onclick="filterDrivers('pending', this)" id="tab-pending">⏳ Pending Approval</button>
-        <button class="filter-tab" onclick="filterDrivers('approved', this)" id="tab-approved">✅ Approved</button>
-        <button class="filter-tab" onclick="filterDrivers('inactive', this)" id="tab-inactive">🚫 Inactive</button>
+        <button class="filter-tab" onclick="filterDrivers('approved', this)" id="tab-approved"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">check_circle</span> Approved</button>
+        <button class="filter-tab" onclick="filterDrivers('inactive', this)" id="tab-inactive"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">block</span> Inactive</button>
       </div>
 
       <div class="alert" id="page-alert"></div>
@@ -64,7 +64,7 @@
       <div class="table-card">
         <div class="table-header">
           <h3>Registered Drivers</h3>
-          <input type="text" id="search-input" placeholder="🔍 Search name or email…"
+          <input type="text" id="search-input" placeholder="Search name or email…"
                  style="background:var(--bg-input);border:1px solid var(--border);
                         border-radius:8px;padding:8px 14px;color:var(--text-primary);
                         font-size:0.85rem;outline:none;width:240px;"

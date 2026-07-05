@@ -6,7 +6,7 @@
 <div class="dashboard-layout">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">emergency</span></div>
       <div class="sidebar-brand-text"><h2>CADTS</h2><p>Driver Panel</p></div>
     </div>
     <nav class="sidebar-nav">
@@ -47,7 +47,7 @@
           <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
             <span style="background:rgba(230,57,70,0.1);color:var(--primary-light);
                          padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;">
-              🚑 Driver Account
+              <span class="material-icons-round" style="font-size:16px;vertical-align:middle;">emergency</span> Driver Account
             </span>
             <span id="approval-badge" style="padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;"></span>
           </div>
@@ -57,7 +57,7 @@
 
         <!-- My Ambulance -->
         <div class="table-card" id="ambulance-card" style="padding:24px;margin-bottom:20px;display:none;">
-          <h3 style="font-size:1rem;margin-bottom:16px;">🚑 My Ambulance</h3>
+          <h3 style="font-size:1rem;margin-bottom:16px;"><span class="material-icons-round" style="font-size:18px;vertical-align:middle;">emergency</span> My Ambulance</h3>
           <div id="ambulance-details"></div>
         </div>
 
@@ -128,7 +128,7 @@
 
     const badge = document.getElementById('approval-badge');
     if (d.is_approved) {
-      badge.textContent = '✅ Approved';
+      badge.innerHTML = '<span class="material-icons-round" style="font-size:14px;vertical-align:middle;">check_circle</span> Approved';
       badge.style.background = 'rgba(16,185,129,0.1)';
       badge.style.color = '#34d399';
     } else {

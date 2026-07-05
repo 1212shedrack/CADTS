@@ -6,7 +6,7 @@
 <div class="dashboard-layout">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🛡️</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">admin_panel_settings</span></div>
       <div class="sidebar-brand-text"><h2>CADTS</h2><p>Admin Panel</p></div>
     </div>
     <nav class="sidebar-nav">
@@ -47,22 +47,22 @@
     <main class="page-content">
 
       <!-- Stats -->
-      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:24px;">
+      <div class="stats-grid" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:24px;">
         <div class="stat-card"><div class="stat-icon amber">⏳</div><div><div class="stat-value" id="s-pending">—</div><div class="stat-label">Pending</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue">🔵</div><div><div class="stat-value" id="s-active">—</div><div class="stat-label">Active</div></div></div>
-        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="s-completed">—</div><div class="stat-label">Completed</div></div></div>
-        <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="s-rejected">—</div><div class="stat-label">Rejected</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue"><span class="material-icons-round">circle</span></div><div><div class="stat-value" id="s-active">—</div><div class="stat-label">Active</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><span class="material-icons-round">check_circle</span></div><div><div class="stat-value" id="s-completed">—</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card"><div class="stat-icon red"><span class="material-icons-round">cancel</span></div><div><div class="stat-value" id="s-rejected">—</div><div class="stat-label">Rejected</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue"><span class="material-icons-round">assignment</span></div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total</div></div></div>
       </div>
 
       <!-- Filter Tabs -->
       <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
         <button class="filter-tab active" onclick="filterBy('all',this)">All</button>
         <button class="filter-tab" onclick="filterBy('pending',this)">⏳ Pending</button>
-        <button class="filter-tab" onclick="filterBy('accepted',this)">🔵 Accepted</button>
-        <button class="filter-tab" onclick="filterBy('completed',this)">✅ Completed</button>
-        <button class="filter-tab" onclick="filterBy('rejected',this)">❌ Rejected</button>
-        <button class="filter-tab" onclick="filterBy('cancelled',this)">🚫 Cancelled</button>
+        <button class="filter-tab" onclick="filterBy('accepted',this)"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">circle</span> Accepted</button>
+        <button class="filter-tab" onclick="filterBy('completed',this)"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">check_circle</span> Completed</button>
+        <button class="filter-tab" onclick="filterBy('rejected',this)"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">cancel</span> Rejected</button>
+        <button class="filter-tab" onclick="filterBy('cancelled',this)"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">block</span> Cancelled</button>
       </div>
 
       <!-- Search -->

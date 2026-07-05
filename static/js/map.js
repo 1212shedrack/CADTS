@@ -52,7 +52,7 @@ const icons = {
       font-size:18px;
       box-shadow:0 0 0 3px rgba(16,185,129,0.3), 0 4px 12px rgba(0,0,0,0.4);
       cursor:pointer;
-    ">🚑</div>`,
+    "><span class="material-icons-round">emergency</span></div>`,
     iconSize:   [36, 36],
     iconAnchor: [18, 18],
     popupAnchor:[0, -20],
@@ -68,7 +68,7 @@ const icons = {
       display:flex; align-items:center; justify-content:center;
       font-size:18px;
       box-shadow:0 0 0 3px rgba(239,68,68,0.3), 0 4px 12px rgba(0,0,0,0.4);
-    ">🚑</div>`,
+    "><span class="material-icons-round">emergency</span></div>`,
     iconSize:   [36, 36],
     iconAnchor: [18, 18],
     popupAnchor:[0, -20],
@@ -85,7 +85,7 @@ const icons = {
       font-size:16px;
       box-shadow:0 4px 12px rgba(0,0,0,0.4);
       cursor:pointer;
-    ">🏥</div>`,
+    "><span class="material-icons-round">local_hospital</span></div>`,
     iconSize:   [32, 32],
     iconAnchor: [16, 16],
     popupAnchor:[0, -18],
@@ -122,7 +122,7 @@ function placeUserMarker(lat, lng) {
 
   userMarker = L.marker([lat, lng], { icon: icons.user })
     .addTo(map)
-    .bindPopup('<strong>📍 Your Location</strong>');
+    .bindPopup('<strong><span class="material-icons-round">location_on</span> Your Location</strong>');
 
   userCircle = L.circle([lat, lng], {
     radius: 200,
@@ -169,7 +169,7 @@ async function loadAmbulances(onSelectCallback) {
 
       const popupHtml = `
         <div style="min-width:200px;font-family:'Inter',sans-serif;">
-          <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">🚑 ${amb.ambulance_name}</div>
+          <div style="font-weight:700;font-size:1rem;margin-bottom:4px;"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">emergency</span> ${amb.ambulance_name}</div>
           <div style="font-size:0.82rem;color:#6b7280;margin-bottom:8px;">Plate: ${amb.plate_number}</div>
           <div style="font-size:0.82rem;margin-bottom:4px;">Driver: <strong>${amb.driver_name || 'Unassigned'}</strong></div>
           <div style="margin-bottom:12px;">
@@ -244,9 +244,9 @@ async function loadHospitals(lat, lng, radius = 5000) {
         .addTo(map)
         .bindPopup(`
           <div style="min-width:180px;font-family:'Inter',sans-serif;">
-            <div style="font-weight:700;margin-bottom:4px;">🏥 ${name}</div>
+            <div style="font-weight:700;margin-bottom:4px;"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">local_hospital</span> ${name}</div>
             <div style="font-size:0.8rem;color:#6b7280;text-transform:capitalize;">${type}</div>
-            ${el.tags?.phone ? `<div style="font-size:0.8rem;margin-top:4px;">📞 ${el.tags.phone}</div>` : ''}
+            ${el.tags?.phone ? `<div style="font-size:0.8rem;margin-top:4px;"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">call</span> ${el.tags.phone}</div>` : ''}
           </div>
         `, { maxWidth: 240 });
 
