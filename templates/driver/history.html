@@ -6,7 +6,7 @@
 <div class="dashboard-layout">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">emergency</span></div>
       <div class="sidebar-brand-text"><h2>CADTS</h2><p>Driver Panel</p></div>
     </div>
     <nav class="sidebar-nav">
@@ -33,24 +33,24 @@
     <main class="page-content">
 
       <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px;">
-        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="s-completed">—</div><div class="stat-label">Completed</div></div></div>
-        <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="s-rejected">—</div><div class="stat-label">Rejected</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue">🗺️</div><div><div class="stat-value" id="s-km">—</div><div class="stat-label">Total KM</div></div></div>
-        <div class="stat-card"><div class="stat-icon amber">📋</div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">All Trips</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><span class="material-icons-round">check_circle</span></div><div><div class="stat-value" id="s-completed">—</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card"><div class="stat-icon red"><span class="material-icons-round">cancel</span></div><div><div class="stat-value" id="s-rejected">—</div><div class="stat-label">Rejected</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue"><span class="material-icons-round">map</span></div><div><div class="stat-value" id="s-km">—</div><div class="stat-label">Total KM</div></div></div>
+        <div class="stat-card"><div class="stat-icon amber"><span class="material-icons-round">assignment</span></div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">All Trips</div></div></div>
       </div>
 
       <!-- Filter -->
       <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
         <button class="filter-tab active" onclick="filterTrips('all',this)">All</button>
-        <button class="filter-tab" onclick="filterTrips('completed',this)">✅ Completed</button>
-        <button class="filter-tab" onclick="filterTrips('rejected',this)">❌ Rejected</button>
-        <button class="filter-tab" onclick="filterTrips('pending',this)">⏳ Pending</button>
+        <button class="filter-tab" onclick="filterTrips('completed',this)"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">check_circle</span> Completed</button>
+        <button class="filter-tab" onclick="filterTrips('rejected',this)"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">cancel</span> Rejected</button>
+        <button class="filter-tab" onclick="filterTrips('pending',this)"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">hourglass_top</span> Pending</button>
       </div>
 
       <div class="table-card">
         <div class="table-header">
           <h3>Trip Log</h3>
-          <input type="text" id="search-input" placeholder="🔍 Search patient…"
+             <input type="text" id="search-input" placeholder="Search patient…"
                  style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;
                         padding:8px 14px;color:var(--text-primary);font-size:0.85rem;outline:none;width:200px;"
                  oninput="searchTrips(this.value)"/>

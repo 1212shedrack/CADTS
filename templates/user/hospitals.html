@@ -30,7 +30,7 @@
 <div class="dashboard-layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">emergency</span></div>
       <div class="sidebar-brand-text"><h2>CADTS</h2><p>Dispatch System</p></div>
     </div>
     <nav class="sidebar-nav">
@@ -98,7 +98,7 @@
       <!-- Hospital Cards -->
       <div id="hospital-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
         <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
-          <div style="font-size:48px;margin-bottom:12px;">📍</div>
+          <div style="font-size:48px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:48px;">location_on</span></div>
           <p>Detecting your location…</p>
         </div>
       </div>
@@ -134,7 +134,7 @@
     className: '',
     html: `<div style="background:linear-gradient(135deg,#e63946,#c1121f);border:2px solid #fff;
                 border-radius:8px;width:32px;height:32px;display:flex;align-items:center;
-                justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,0.4);">🏥</div>`,
+                justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,0.4);"><span class="material-icons-round" style="font-size:16px;">local_hospital</span></div>`,
     iconSize:[32,32], iconAnchor:[16,16], popupAnchor:[0,-18],
   });
 
@@ -176,14 +176,14 @@
       // User marker + radius circle
       L.marker([userLat, userLng], { icon: userIcon })
        .addTo(hospMap)
-       .bindPopup('<b>📍 Your Location</b>').openPopup();
+      .bindPopup('<b><span class="material-icons-round">location_on</span> Your Location</b>').openPopup();
 
       await searchHospitals();
     }, () => {
       showAlert('Location access denied. Please enable GPS to find nearby hospitals.', 'error');
       document.getElementById('hospital-grid').innerHTML =
         `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
-           <div style="font-size:48px;margin-bottom:12px;">📵</div>
+           <div style="font-size:48px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:48px;">signal_wifi_off</span></div>
            <p>Location permission is required to find nearby hospitals.</p>
            <p style="font-size:0.82rem;margin-top:8px;">Please allow location access in your browser settings and refresh.</p>
          </div>`;
@@ -211,7 +211,7 @@
     document.getElementById('found-count').textContent = 'Searching…';
     document.getElementById('hospital-grid').innerHTML =
       `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
-         <div style="font-size:48px;margin-bottom:12px;">🔍</div><p>Searching for hospitals…</p>
+         <div style="font-size:48px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:48px;">search</span></div><p>Searching for hospitals…</p>
        </div>`;
 
     // Clear old markers
@@ -261,7 +261,7 @@
       document.getElementById('found-count').textContent = 'Error';
       document.getElementById('hospital-grid').innerHTML =
         `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
-           <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+           <div style="font-size:48px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:48px;">warning</span></div>
            <p>Could not connect to map service. Check your internet and try again.</p>
            <button onclick="searchHospitals()" class="btn btn-primary"
                    style="width:auto;padding:10px 24px;margin-top:16px;">Try Again</button>
@@ -289,10 +289,10 @@
 
       const marker = L.marker([lat,lng], { icon: hospIcon }).addTo(hospMap).bindPopup(`
         <div style="min-width:180px;font-family:'Inter',sans-serif;">
-          <div style="font-weight:700;margin-bottom:4px;">🏥 ${name}</div>
+          <div style="font-weight:700;margin-bottom:4px;"><span class="material-icons-round" style="font-size:16px;vertical-align:middle;">local_hospital</span> ${name}</div>
           <div style="font-size:0.8rem;color:#6b7280;text-transform:capitalize;">${type}</div>
-          ${phone ? `<div style="font-size:0.8rem;margin-top:4px;">📞 ${phone}</div>` : ''}
-          <div style="font-size:0.8rem;margin-top:4px;color:#10b981;">📏 ~${dist.toFixed(1)} km away</div>
+          ${phone ? `<div style="font-size:0.8rem;margin-top:4px;"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">call</span> ${phone}</div>` : ''}
+          <div style="font-size:0.8rem;margin-top:4px;color:#10b981;"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">route</span> ~${dist.toFixed(1)} km away</div>
         </div>`, { maxWidth:240 });
 
       hospMarkers.push(marker);
@@ -307,7 +307,7 @@
     if (!hospitals.length) {
       document.getElementById('hospital-grid').innerHTML =
         `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">
-           <div style="font-size:56px;margin-bottom:16px;">🏥</div>
+           <div style="font-size:56px;margin-bottom:16px;"><span class="material-icons-round" style="font-size:56px;">local_hospital</span></div>
            <h3 style="margin-bottom:8px;">No hospitals found within ${searchRadius/1000} km</h3>
            <p style="font-size:0.82rem;margin-top:8px;">Try increasing the search radius above.</p>
          </div>`;
@@ -322,25 +322,25 @@
            onmouseleave="this.style.transform='translateY(0)';this.style.borderColor='var(--border)'">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
           <div style="width:44px;height:44px;background:rgba(230,57,70,0.12);border-radius:10px;
-                      display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🏥</div>
+                      display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;"><span class="material-icons-round" style="font-size:22px;">local_hospital</span></div>
           <div style="flex:1;min-width:0;">
             <p style="font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;
                       white-space:nowrap;margin:0;">${h.name}</p>
             <p style="font-size:0.75rem;color:var(--text-muted);text-transform:capitalize;margin:2px 0 0;">
-              ${h.type} · 📏 ${h.dist.toFixed(1)} km away
+              ${h.type} · <span class="material-icons-round" style="font-size:14px;vertical-align:middle;">route</span> ${h.dist.toFixed(1)} km away
             </p>
           </div>
         </div>
-        ${h.phone ? `<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">📞 ${h.phone}</p>` : ''}
+        ${h.phone ? `<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">call</span> ${h.phone}</p>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="event.stopPropagation();hospMap.flyTo([${h.lat},${h.lng}],17)"
                   style="flex:1;background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.2);
                          border-radius:8px;padding:8px;color:var(--primary-light);font-size:0.8rem;
-                         cursor:pointer;font-weight:500;">📍 View on Map</button>
+                         cursor:pointer;font-weight:500;"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">location_on</span> View on Map</button>
           <button onclick="event.stopPropagation();window.open('https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}','_blank')"
                   style="flex:1;background:var(--bg-glass);border:1px solid var(--border);
                          border-radius:8px;padding:8px;color:var(--text-secondary);font-size:0.8rem;
-                         cursor:pointer;font-weight:500;">🗺️ Directions</button>
+                         cursor:pointer;font-weight:500;"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">map</span> Directions</button>
         </div>
       </div>`).join('');
   }

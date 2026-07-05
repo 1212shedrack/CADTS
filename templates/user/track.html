@@ -44,7 +44,7 @@
       <a href="/dashboard/user/" style="color:var(--text-muted);display:flex;align-items:center;">
         <span class="material-icons-round">arrow_back</span>
       </a>
-      <h2 style="font-size:1rem;flex:1;">📍 Track Ambulance</h2>
+      <h2 style="font-size:1rem;flex:1;"><span class="material-icons-round" style="font-size:18px;vertical-align:middle;">location_on</span> Track Ambulance</h2>
       <button onclick="refreshStatus()" title="Refresh"
               style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
         <span class="material-icons-round">refresh</span>
@@ -55,7 +55,7 @@
 
       <!-- No active request -->
       <div id="no-request" style="text-align:center;padding:48px 0;">
-        <div style="font-size:52px;margin-bottom:12px;">✅</div>
+        <div style="font-size:52px;margin-bottom:12px;"><span class="material-icons-round" style="font-size:52px;color:#34d399;">check_circle</span></div>
         <p style="font-weight:700;margin-bottom:6px;">No Active Request</p>
         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px;">
           You don't have an ambulance on the way.
@@ -72,7 +72,7 @@
         <!-- Status Banner -->
         <div id="status-banner" style="border-radius:12px;padding:16px 20px;
              margin-bottom:20px;display:flex;align-items:center;gap:14px;">
-          <span style="font-size:28px;" id="status-icon">🚑</span>
+          <span class="material-icons-round" style="font-size:28px;" id="status-icon">emergency</span>
           <div>
             <p style="font-weight:700;font-size:0.95rem;margin:0;" id="status-title">—</p>
             <p style="font-size:0.8rem;margin:3px 0 0;opacity:0.8;" id="status-subtitle">—</p>
@@ -126,7 +126,7 @@
          border-radius:999px;padding:10px 24px;
          display:flex;align-items:center;gap:10px;
          box-shadow:0 4px 16px rgba(0,0,0,0.3);">
-      <span class="car-anim" style="font-size:20px;">🚑</span>
+      <span class="car-anim material-icons-round" style="font-size:20px;">emergency</span>
       <span style="font-weight:700;color:var(--text-primary);" id="eta-text">Calculating…</span>
     </div>
   </div>
@@ -154,12 +154,12 @@
 
   const STATUS_CONFIG = {
     pending:        { icon:'⏳', title:'Waiting for Driver', sub:'Your request is being reviewed', bg:'rgba(245,158,11,0.1)', border:'rgba(245,158,11,0.3)', color:'#fcd34d' },
-    accepted:       { icon:'🚑', title:'Ambulance On the Way!', sub:'Driver is heading to your location', bg:'rgba(59,130,246,0.1)', border:'rgba(59,130,246,0.3)', color:'#93c5fd' },
-    arrived:        { icon:'📍', title:'Ambulance Arrived!', sub:'The ambulance is at your location', bg:'rgba(139,92,246,0.1)', border:'rgba(139,92,246,0.3)', color:'#c4b5fd' },
-    patient_picked: { icon:'🏥', title:'En Route to Hospital', sub:'You are on board', bg:'rgba(245,158,11,0.1)', border:'rgba(245,158,11,0.3)', color:'#fcd34d' },
-    completed:      { icon:'✅', title:'Trip Completed!', sub:'You have arrived safely', bg:'rgba(16,185,129,0.1)', border:'rgba(16,185,129,0.3)', color:'#34d399' },
-    rejected:       { icon:'❌', title:'Request Rejected', sub:'The driver rejected your request', bg:'rgba(239,68,68,0.1)', border:'rgba(239,68,68,0.3)', color:'#f87171' },
-    cancelled:      { icon:'🚫', title:'Request Cancelled', sub:'This request was cancelled', bg:'rgba(107,114,128,0.1)', border:'rgba(107,114,128,0.3)', color:'#9ca3af' },
+    accepted:       { icon:'emergency', title:'Ambulance On the Way!', sub:'Driver is heading to your location', bg:'rgba(59,130,246,0.1)', border:'rgba(59,130,246,0.3)', color:'#93c5fd' },
+    arrived:        { icon:'location_on', title:'Ambulance Arrived!', sub:'The ambulance is at your location', bg:'rgba(139,92,246,0.1)', border:'rgba(139,92,246,0.3)', color:'#c4b5fd' },
+    patient_picked: { icon:'local_hospital', title:'En Route to Hospital', sub:'You are on board', bg:'rgba(245,158,11,0.1)', border:'rgba(245,158,11,0.3)', color:'#fcd34d' },
+    completed:      { icon:'check_circle', title:'Trip Completed!', sub:'You have arrived safely', bg:'rgba(16,185,129,0.1)', border:'rgba(16,185,129,0.3)', color:'#34d399' },
+    rejected:       { icon:'cancel', title:'Request Rejected', sub:'The driver rejected your request', bg:'rgba(239,68,68,0.1)', border:'rgba(239,68,68,0.3)', color:'#f87171' },
+    cancelled:      { icon:'block', title:'Request Cancelled', sub:'This request was cancelled', bg:'rgba(107,114,128,0.1)', border:'rgba(107,114,128,0.3)', color:'#9ca3af' },
   };
 
   async function refreshStatus() {
@@ -194,7 +194,7 @@
     banner.style.background   = cfg.bg     || 'var(--bg-glass)';
     banner.style.border       = `1px solid ${cfg.border || 'var(--border)'}`;
     banner.style.color        = cfg.color  || 'var(--text-primary)';
-    document.getElementById('status-icon').textContent    = cfg.icon  || '🚑';
+    document.getElementById('status-icon').textContent    = cfg.icon  || 'emergency';
     document.getElementById('status-title').textContent   = cfg.title || req.status;
     document.getElementById('status-subtitle').textContent= cfg.sub   || '';
 
@@ -211,7 +211,7 @@
       const isCur    = i === currentIdx && req.status !== 'completed';
       return `<div class="step-row">
         <div class="step-bubble ${isDone?'done':isCur?'current':'pending'}">
-          ${isDone ? '✅' : isCur ? '🔵' : '⬜'}
+          <span class="material-icons-round" style="font-size:18px;">${isDone ? 'check_circle' : isCur ? 'circle' : 'radio_button_unchecked'}</span>
         </div>
         <div>
           <p style="font-weight:${isCur?700:500};margin:0;color:${isCur?'var(--primary-light)':isDone?'#34d399':'var(--text-muted)'};">
@@ -226,7 +226,7 @@
     document.getElementById('cancel-section').innerHTML = req.status === 'pending' ? `
       <button onclick="cancelRequest(${req.id})" class="btn btn-outline"
               style="border-color:rgba(239,68,68,0.4);color:#f87171;margin-bottom:16px;">
-        🚫 Cancel Request
+        <span class="material-icons-round" style="font-size:16px;vertical-align:middle;">block</span> Cancel Request
       </button>` : '';
 
     // Cost (completed)
@@ -239,9 +239,9 @@
     if (['accepted','arrived','patient_picked'].includes(req.status)) {
       document.getElementById('eta-chip').style.display = 'flex';
       document.getElementById('eta-text').textContent =
-        req.status === 'accepted' ? '🚑 Ambulance is on the way…'
-        : req.status === 'arrived' ? '📍 Ambulance has arrived!'
-        : '🏥 En route to hospital…';
+        req.status === 'accepted' ? 'Ambulance is on the way…'
+        : req.status === 'arrived' ? 'Ambulance has arrived!'
+        : 'En route to hospital…';
     } else {
       document.getElementById('eta-chip').style.display = 'none';
     }
@@ -276,7 +276,7 @@
                      width:20px;height:20px;box-shadow:0 0 0 4px rgba(59,130,246,0.3);"></div>`,
           iconSize:[20,20], iconAnchor:[10,10],
         })
-      }).addTo(trackMap).bindPopup('📍 Your Pickup Location');
+      }).addTo(trackMap).bindPopup('<span class="material-icons-round" style="font-size:14px;vertical-align:middle;">location_on</span> Your Pickup Location');
       trackMap.setView([pLat, pLng], 14);
     }
 
@@ -328,7 +328,7 @@
                    width:28px;height:28px;display:flex;align-items:center;
                    justify-content:center;font-size:14px;
                    box-shadow:0 0 0 6px rgba(230,57,70,0.2),0 2px 8px rgba(0,0,0,0.4);
-                   animation:pulse 2s infinite;">🚑</div>`,
+                   animation:pulse 2s infinite;"><span class="material-icons-round" style="font-size:18px;">emergency</span></div>`,
       iconSize: [28, 28], iconAnchor: [14, 14],
     });
 
@@ -338,7 +338,7 @@
     } else {
       ambulanceMarker = L.marker([lat, lng], { icon: ambIcon })
         .addTo(trackMap)
-        .bindPopup(`🚑 ${name || 'Ambulance'}`);
+        .bindPopup(`<span class="material-icons-round" style="font-size:14px;vertical-align:middle;">emergency</span> ${name || 'Ambulance'}`);
     }
 
     // Gently pan map to keep ambulance visible

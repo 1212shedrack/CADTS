@@ -8,7 +8,7 @@
   <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon">🚑</div>
+      <div class="sidebar-brand-icon"><span class="material-icons-round">emergency</span></div>
       <div class="sidebar-brand-text">
         <h2>CADTS</h2>
         <p>Dispatch System</p>
@@ -85,37 +85,37 @@
       <!-- Welcome Banner -->
       <div class="welcome-banner" id="welcome-banner">
         <div class="welcome-text">
-          <h2>Good <span id="greeting-time">morning</span>, <span id="welcome-name">there</span> 👋</h2>
+          <h2>Good <span id="greeting-time">morning</span>, <span id="welcome-name">there</span> <span class="material-icons-round" style="font-size:24px;vertical-align:middle;">waving_hand</span></h2>
           <p>Stay safe. Help is always a tap away.</p>
         </div>
-        <div class="welcome-icon">🚑</div>
+        <div class="welcome-icon"><span class="material-icons-round" style="font-size:56px;">emergency</span></div>
       </div>
 
       <!-- Stats -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon green">🚑</div>
+          <div class="stat-icon green"><span class="material-icons-round">emergency</span></div>
           <div>
             <div class="stat-value" id="stat-available">—</div>
             <div class="stat-label">Available Ambulances</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon blue">📋</div>
+          <div class="stat-icon blue"><span class="material-icons-round">assignment</span></div>
           <div>
             <div class="stat-value" id="stat-requests">—</div>
             <div class="stat-label">My Total Requests</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon amber">🏥</div>
+          <div class="stat-icon amber"><span class="material-icons-round">local_hospital</span></div>
           <div>
             <div class="stat-value" id="stat-hospitals">—</div>
             <div class="stat-label">Nearby Hospitals</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon red">💰</div>
+          <div class="stat-icon red"><span class="material-icons-round">payments</span></div>
           <div>
             <div class="stat-value" id="stat-spent">—</div>
             <div class="stat-label">Total Spent (Tsh)</div>
@@ -231,6 +231,7 @@
   }
   .welcome-banner h2 { font-size: 1.5rem; margin-bottom: 4px; }
   .welcome-icon { font-size: 56px; animation: pulse 2s ease-in-out infinite; }
+  .welcome-icon .material-icons-round { font-size: 56px; }
   @keyframes pulse {
     0%,100% { transform: scale(1); }
     50%      { transform: scale(1.08); }
