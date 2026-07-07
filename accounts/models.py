@@ -28,7 +28,8 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     """
     Central user model for CADTS.
-    All actors (User, Driver, Admin) share this model — differentiated by `role`.
+    All actors (User, Driver, Admin)
+    share this model — differentiated by `role`.
     """
 
     class Role(models.TextChoices):

@@ -11,37 +11,41 @@ from accounts.models import CustomUser
 from accounts.permissions import IsAdminRole, IsDriverRole
 from drivers.models import DriverProfile
 from .models import Ambulance
-from .serializers import AmbulanceSerializer, AmbulanceCreateSerializer, DriverChoiceSerializer
+from .serializers import AmbulanceSerializer, AmbulanceCreateSerializer
+from .serializers import DriverChoiceSerializer
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # HTML PAGE VIEWS
-# ─────────────────────────────────────────────────────────────────────────────
+
+
 def admin_dashboard(request):
     return render(request, 'admin/dashboard.html')
+
 
 def admin_users(request):
     return render(request, 'admin/users.html')
 
+
 def admin_drivers(request):
     return render(request, 'admin/drivers.html')
+
 
 def admin_ambulances(request):
     return render(request, 'admin/ambulances.html')
 
+
 def admin_requests(request):
     return render(request, 'admin/requests.html')
+
 
 def admin_reports(request):
     return render(request, 'admin/reports.html')
 
+
 def admin_settings(request):
     return render(request, 'admin/settings.html')
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # AMBULANCE API VIEWS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 class AmbulanceListCreateAPIView(APIView):
     """
@@ -103,14 +107,18 @@ class AmbulanceDetailAPIView(APIView):
     def get(self, request, pk):
         ambulance = self.get_object(pk)
         if not ambulance:
-            return Response({"error": "Ambulance not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Ambulance not found."},
+                            status=status.HTTP_404_NOT_FOUND)
         return Response(AmbulanceSerializer(ambulance).data)
 
     def patch(self, request, pk):
         ambulance = self.get_object(pk)
         if not ambulance:
-            return Response({"error": "Ambulance not found."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = AmbulanceCreateSerializer(ambulance, data=request.data, partial=True)
+            return Response({"error": "Ambulance not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+        serializer = AmbulanceCreateSerializer(ambulance,
+                                               data=request.data,
+                                               partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(AmbulanceSerializer(ambulance).data)
@@ -119,20 +127,24 @@ class AmbulanceDetailAPIView(APIView):
     def delete(self, request, pk):
         ambulance = self.get_object(pk)
         if not ambulance:
-            return Response({"error": "Ambulance not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Ambulance not found."},
+                            status=status.HTTP_404_NOT_FOUND)
         ambulance.delete()
-        return Response({"message": "Ambulance deleted."}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Ambulance deleted."},
+                        status=status.HTTP_204_NO_CONTENT)
 
 
 class AmbulanceAssignDriverAPIView(APIView):
-    """POST /api/ambulances/<id>/assign/ — Admin assigns a driver to an ambulance."""
+    """POST /api/ambulances/<id>/assign/
+    Admin assigns a driver to an ambulance."""
     permission_classes = [IsAdminRole]
 
     def post(self, request, pk):
         try:
             ambulance = Ambulance.objects.get(pk=pk)
         except Ambulance.DoesNotExist:
-            return Response({"error": "Ambulance not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Ambulance not found."},
+                            status=status.HTTP_404_NOT_FOUND)
 
         driver_id = request.data.get("driver_id")
         if not driver_id:
@@ -140,10 +152,12 @@ class AmbulanceAssignDriverAPIView(APIView):
             ambulance.driver = None
             ambulance.status = Ambulance.Status.OFFLINE
             ambulance.save()
-            return Response({"message": "Driver unassigned. Ambulance set to Offline."})
+            return Response({
+                "message": "Driver unassigned. Ambulance set to Offline."})
 
         try:
-            driver = CustomUser.objects.get(pk=driver_id, role="driver", is_approved=True)
+            driver = CustomUser.objects.get(pk=driver_id,
+                                            role="driver", is_approved=True)
         except CustomUser.DoesNotExist:
             return Response(
                 {"error": "Driver not found or not approved."},
@@ -153,7 +167,10 @@ class AmbulanceAssignDriverAPIView(APIView):
         # Check no other ambulance assigned to this driver
         if Ambulance.objects.filter(driver=driver).exclude(pk=pk).exists():
             return Response(
-                {"error": "This driver is already assigned to another ambulance."},
+                {
+                    "error":
+                        "This driver is already assigned"
+                        "to another ambulance."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -163,7 +180,9 @@ class AmbulanceAssignDriverAPIView(APIView):
         ambulance.save()
 
         return Response({
-            "message": f"Driver '{driver.full_name}' assigned to '{ambulance.ambulance_name}'.",
+            "message":
+                f"Driver '{driver.full_name}'assigned to"
+                f"'{ambulance.ambulance_name}'.",
             "ambulance": AmbulanceSerializer(ambulance).data,
         })
 
@@ -177,7 +196,8 @@ class DriverMineAPIView(APIView):
             ambulance = Ambulance.objects.get(driver=request.user)
             return Response(AmbulanceSerializer(ambulance).data)
         except Ambulance.DoesNotExist:
-            return Response({"error": "No ambulance assigned to you."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "No ambulance assigned to you."},
+                            status=status.HTTP_404_NOT_FOUND)
 
 
 class DriverListAPIView(APIView):
@@ -185,7 +205,8 @@ class DriverListAPIView(APIView):
     permission_classes = [IsAdminRole]
 
     def get(self, request):
-        drivers = CustomUser.objects.filter(role="driver").select_related("driver_profile")
+        drivers = CustomUser.objects.filter(
+            role="driver").select_related("driver_profile")
         data = []
         for d in drivers:
             profile = getattr(d, "driver_profile", None)
@@ -204,31 +225,39 @@ class DriverListAPIView(APIView):
 
 
 class DriverApproveAPIView(APIView):
-    """POST /api/drivers/<id>/approve/ — Admin approves or deactivates a driver."""
+    """POST /api/drivers/<id>/approve/
+    Admin approves or deactivates a driver."""
     permission_classes = [IsAdminRole]
 
     def post(self, request, pk):
         try:
             driver = CustomUser.objects.get(pk=pk, role="driver")
         except CustomUser.DoesNotExist:
-            return Response({"error": "Driver not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        action = request.data.get("action")  # "approve" | "deactivate" | "activate"
+            return Response({"error": "Driver not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+        # "approve" | "deactivate" | "activate"
+        action = request.data.get("action")
         if action == "approve":
             driver.is_approved = True
-            driver.is_active   = True
+            driver.is_active = True
             driver.save()
-            return Response({"message": f"Driver '{driver.full_name}' approved."})
+            return Response({
+                "message": f"Driver '{driver.full_name}' approved."})
         elif action == "deactivate":
             driver.is_active = False
             driver.save()
-            return Response({"message": f"Driver '{driver.full_name}' deactivated."})
+            return Response({
+                "message": f"Driver '{driver.full_name}' deactivated."})
         elif action == "activate":
             driver.is_active = True
             driver.save()
-            return Response({"message": f"Driver '{driver.full_name}' activated."})
+            return Response({
+                "message": f"Driver '{driver.full_name}' activated."})
         else:
-            return Response({"error": "Invalid action. Use 'approve', 'activate', or 'deactivate'."}, status=400)
+            return Response({
+                "error":
+                    "Invalid action. Use 'approve',"
+                    "'activate', or 'deactivate'."}, status=400)
 
 
 class UserListAPIView(APIView):
@@ -249,16 +278,21 @@ class UserListAPIView(APIView):
 
 
 class DriverChoicesAPIView(APIView):
-    """GET /api/drivers/choices/ — Admin: Get approved drivers without an ambulance (for dropdown)."""
+    """GET /api/drivers/choices/
+    Admin: Get approved drivers without an
+    ambulance (for dropdown)."""
     permission_classes = [IsAdminRole]
 
     def get(self, request):
         # Drivers who are approved and not yet assigned to any ambulance
-        assigned_ids = Ambulance.objects.exclude(driver=None).values_list("driver_id", flat=True)
+        assigned_ids = Ambulance.objects.exclude(
+            driver=None).values_list("driver_id", flat=True)
         drivers = CustomUser.objects.filter(
             role="driver", is_approved=True
         ).exclude(id__in=assigned_ids)
-        data = [{"id": d.id, "full_name": d.full_name, "email": d.email} for d in drivers]
+        data = [{
+            "id": d.id, "full_name": d.full_name,
+            "email": d.email} for d in drivers]
         return Response(data)
 
 
@@ -269,12 +303,13 @@ class AdminStatsAPIView(APIView):
     def get(self, request):
         from billing.models import Billing
 
-        total_users       = CustomUser.objects.filter(role="user").count()
-        total_drivers     = CustomUser.objects.filter(role="driver").count()
-        pending_drivers   = CustomUser.objects.filter(role="driver", is_approved=False).count()
-        available_amb     = Ambulance.objects.filter(status="available").count()
-        busy_amb          = Ambulance.objects.filter(status="busy").count()
-        total_ambulances  = Ambulance.objects.count()
+        total_users = CustomUser.objects.filter(role="user").count()
+        total_drivers = CustomUser.objects.filter(role="driver").count()
+        pending_drivers = CustomUser.objects.filter(
+            role="driver", is_approved=False).count()
+        available_amb = Ambulance.objects.filter(status="available").count()
+        busy_amb = Ambulance.objects.filter(status="busy").count()
+        total_ambulances = Ambulance.objects.count()
 
         try:
             from requests_app.models import Request

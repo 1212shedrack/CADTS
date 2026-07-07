@@ -64,7 +64,7 @@
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Name</th><th>Email</th><th>Phone</th>
+                <th>No</th><th>Name</th><th>Email</th><th>Phone</th>
                 <th>Status</th><th>Registered</th>
               </tr>
             </thead>
@@ -117,7 +117,7 @@
     }
     tbody.innerHTML = list.map(u => `
       <tr>
-        <td style="color:var(--text-muted);">#${u.id}</td>
+        <td style="color:var(--text-muted);">${u.id}</td>
         <td>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:32px;height:32px;border-radius:50%;

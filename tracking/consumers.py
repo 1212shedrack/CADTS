@@ -99,19 +99,19 @@ class TrackingConsumer(AsyncWebsocketConsumer):
     async def location_update(self, event):
         """Forward GPS update to the WebSocket client."""
         await self.send(text_data=json.dumps({
-            "type":         "location_update",
+            "type": "location_update",
             "ambulance_id": event["ambulance_id"],
-            "latitude":     event["latitude"],
-            "longitude":    event["longitude"],
-            "timestamp":    event.get("timestamp", ""),
+            "latitude":  event["latitude"],
+            "longitude": event["longitude"],
+            "timestamp": event.get("timestamp", ""),
         }))
 
     async def request_status_update(self, event):
         """Forward request status change to the WebSocket client."""
         await self.send(text_data=json.dumps({
-            "type":       "status_update",
+            "type": "status_update",
             "ambulance_id": event.get("ambulance_id"),
-            "status":     event.get("status"),
+            "status": event.get("status"),
             "request_id": event.get("request_id"),
         }))
 
@@ -139,7 +139,7 @@ class TrackingConsumer(AsyncWebsocketConsumer):
                 return {
                     "latitude":  float(amb.latitude),
                     "longitude": float(amb.longitude),
-                    "status":    amb.status,
+                    "status": amb.status,
                 }
         except Exception:
             pass
@@ -187,17 +187,17 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     async def new_request(self, event):
         """Forward new ambulance request notification to the driver."""
         await self.send(text_data=json.dumps({
-            "type":       "new_request",
+            "type": "new_request",
             "request_id": event.get("request_id"),
             "user_name":  event.get("user_name"),
-            "user_id":    event.get("user_id"),
-            "message":    event.get("message", "New ambulance request!"),
+            "user_id": event.get("user_id"),
+            "message": event.get("message", "New ambulance request!"),
         }))
 
     async def request_cancelled(self, event):
         """Notify driver that the user cancelled their request."""
         await self.send(text_data=json.dumps({
-            "type":       "request_cancelled",
+            "type":  "request_cancelled",
             "request_id": event.get("request_id"),
-            "message":    "The user has cancelled their request.",
+            "message": "The user has cancelled their request.",
         }))

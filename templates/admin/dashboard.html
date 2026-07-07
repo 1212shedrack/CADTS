@@ -160,7 +160,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th>No</th>
                   <th>User</th>
                   <th>Ambulance</th>
                   <th>Status</th>
@@ -308,7 +308,7 @@
         if (list.length > 0) {
           document.getElementById('recent-requests').innerHTML = list.map((r, i) => `
             <tr>
-              <td style="color:var(--text-muted);">#${r.id}</td>
+              <td style="color:var(--text-muted);">No${r.id}</td>
               <td>${r.user_name || '—'}</td>
               <td>${r.ambulance_name || '—'}</td>
               <td><span class="badge badge-${(r.status||'').toLowerCase()}">${r.status || '—'}</span></td>

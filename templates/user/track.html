@@ -108,7 +108,7 @@
         <div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;
                     padding:16px;margin-bottom:20px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-size:0.82rem;color:var(--text-muted);">Request #</span>
+            <span style="font-size:0.82rem;color:var(--text-muted);">Request</span>
             <span id="req-id" style="font-weight:600;">—</span>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
@@ -224,7 +224,7 @@
     document.getElementById('status-subtitle').textContent= cfg.sub   || '';
 
     // Info
-    document.getElementById('req-id').textContent      = `#${req.id}`;
+    document.getElementById('req-id').textContent      = `${req.id}`;
     document.getElementById('req-amb').textContent     = req.ambulance_name || '—';
     document.getElementById('req-updated').textContent =
       new Date(req.updated_at).toLocaleTimeString();

@@ -74,7 +74,7 @@
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Name</th><th>Email</th><th>Phone</th>
+                <th>No</th><th>Name</th><th>Email</th><th>Phone</th>
                 <th>License No.</th><th>Approval</th><th>Status</th><th>Registered</th><th>Actions</th>
               </tr>
             </thead>
@@ -178,7 +178,7 @@
 
     tbody.innerHTML = list.map(d => `
       <tr>
-        <td style="color:var(--text-muted);">#${d.id}</td>
+        <td style="color:var(--text-muted);">${d.id}</td>
         <td style="font-weight:600;color:var(--text-primary);">${d.full_name}</td>
         <td>${d.email}</td>
         <td>${d.phone || '—'}</td>

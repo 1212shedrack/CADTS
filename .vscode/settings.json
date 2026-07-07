@@ -1,0 +1,5 @@
+{
+	"css.lint.emptyRules": "ignore",
+	"css.lint.unknownAtRules": "ignore",
+	"less.lint.emptyRules": "ignore"
+}

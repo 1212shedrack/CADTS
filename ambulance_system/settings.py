@@ -4,7 +4,6 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # SECURITY
 SECRET_KEY = "django-insecure-cadts-**2byn6b*av"
 "_!jub^t&1o^k&ujxqf(e98+f91@7^(x8pmcj6yz"
@@ -77,14 +76,21 @@ TEMPLATES = [
 ]
 
 
-# DATABASE – SQLite
+# DATABASE – MySQL
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "cadts_db",
+        "USER": "root",
+        "PASSWORD": "Shedy@123",
+        "HOST": "localhost",
+        "PORT": "3306",
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
-
 
 # CUSTOM USER MODEL
 AUTH_USER_MODEL = "accounts.CustomUser"

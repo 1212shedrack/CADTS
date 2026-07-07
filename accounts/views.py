@@ -3,7 +3,7 @@
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout as auth_logout
-from django.contrib.auth.decorators import login_required
+# from django.contrib.auth.decorators import login_required
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -21,10 +21,9 @@ from .serializers import (
 from .models import CustomUser
 import re
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
+
+
 def get_tokens_for_user(user):
     """Generate JWT access and refresh tokens for a given user."""
     refresh = RefreshToken.for_user(user)
@@ -36,9 +35,9 @@ def get_tokens_for_user(user):
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # API VIEWS
-# ─────────────────────────────────────────────────────────────────────────────
+
+
 class UserRegisterAPIView(APIView):
     """POST /api/auth/register/user/ — Register a new citizen user."""
     permission_classes = [AllowAny]
@@ -46,7 +45,7 @@ class UserRegisterAPIView(APIView):
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
-            user   = serializer.save()
+            user = serializer.save()
             tokens = get_tokens_for_user(user)
             return Response({
                 "message": "Registration successful.",
@@ -62,7 +61,8 @@ class UserRegisterAPIView(APIView):
 
 
 class DriverRegisterAPIView(APIView):
-    """POST /api/auth/register/driver/ — Register a new driver (pending approval)."""
+    """POST /api/auth/register/driver/
+    Register a new driver (pending approval)."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -70,7 +70,8 @@ class DriverRegisterAPIView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             return Response({
-                "message": "Driver registration submitted. Awaiting admin approval.",
+                "message":
+                    "Driver registration submitted. Awaiting admin approval.",
                 "user": {
                     "id":        user.id,
                     "full_name": user.full_name,
@@ -88,7 +89,7 @@ class LoginAPIView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            user   = serializer.validated_data["user"]
+            user = serializer.validated_data["user"]
             tokens = get_tokens_for_user(user)
             return Response({
                 "message": "Login successful.",
@@ -115,11 +116,13 @@ class LogoutAPIView(APIView):
             token.blacklist()
         except Exception:
             pass  # Token already invalid — still respond success
-        return Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
+        return Response({"message": "Logged out successfully."},
+                        status=status.HTTP_200_OK)
 
 
 class ProfileAPIView(APIView):
-    """GET/PATCH /api/auth/profile/ — View and update logged-in user's profile."""
+    """GET/PATCH /api/auth/profile/
+    View and update logged-in user's profile."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -127,16 +130,18 @@ class ProfileAPIView(APIView):
         return Response(serializer.data)
 
     def patch(self, request):
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        serializer = UserProfileSerializer(request.user,
+                                           data=request.data,
+                                           partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # HTML PAGE VIEWS
-# ─────────────────────────────────────────────────────────────────────────────
+
+
 def login_page(request):
     """Render the login HTML page."""
     return render(request, "accounts/login.html")
@@ -162,10 +167,9 @@ def forgot_password_page(request):
     """Render the forgot password HTML page."""
     return render(request, "accounts/forgot_password.html")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # PASSWORD RESET API
-# ─────────────────────────────────────────────────────────────────────────────
+
+
 class ForgotPasswordAPIView(APIView):
     """
     POST /api/auth/forgot-password/
@@ -176,33 +180,46 @@ class ForgotPasswordAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email           = request.data.get('email', '').strip().lower()
-        new_password    = request.data.get('new_password', '')
-        confirm_password= request.data.get('confirm_password', '')
+        email = request.data.get('email', '').strip().lower()
+        new_password = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
 
         if not email:
-            return Response({'error': 'Email address is required.'}, status=400)
+            return Response({'error': 'Email address is required.'},
+                            status=400)
 
         if not new_password:
-            return Response({'error': 'New password is required.'}, status=400)
+            return Response({'error': 'New password is required.'},
+                            status=400)
 
         if new_password != confirm_password:
-            return Response({'error': 'Passwords do not match.'}, status=400)
+            return Response({'error': 'Passwords do not match.'},
+                            status=400)
 
         # Password strength: min 8 chars, at least one letter and one digit
         if len(new_password) < 8:
-            return Response({'error': 'Password must be at least 8 characters.'}, status=400)
+            return Response({
+                'error': 'Password must be at least 8 characters.'},
+                            status=400)
 
-        if not re.search(r'[A-Za-z]', new_password) or not re.search(r'\d', new_password):
-            return Response({'error': 'Password must contain both letters and numbers.'}, status=400)
+        if not re.search(r'[A-Za-z]',
+                         new_password) or not re.search(r'\d', new_password):
+            return Response({
+                'error': 'Password must contain both letters and numbers.'},
+                            status=400)
 
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
             # Vague message to prevent email enumeration
-            return Response({'error': 'No account found with that email address.'}, status=404)
+            return Response({
+                'error': 'No account found with that email address.'},
+                            status=404)
 
         user.set_password(new_password)
         user.save()
 
-        return Response({'message': 'Password reset successfully. You can now log in with your new password.'}, status=200)
+        return Response({
+            'message': 'Password reset successfully.'
+            'You can now log in with your new password.'},
+                        status=200)

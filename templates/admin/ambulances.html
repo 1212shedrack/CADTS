@@ -89,7 +89,7 @@
           <table id="amb-table">
             <thead>
               <tr>
-                <th>#</th><th>Name</th><th>Plate</th><th>Driver</th>
+                <th>No</th><th>Name</th><th>Plate</th><th>Driver</th>
                 <th>Status</th><th>Registered</th><th>Actions</th>
               </tr>
             </thead>
@@ -227,7 +227,7 @@
     }
     tbody.innerHTML = list.map(a => `
       <tr>
-        <td style="color:var(--text-muted);">#${a.id}</td>
+        <td style="color:var(--text-muted);">${a.id}</td>
         <td style="font-weight:600;color:var(--text-primary);">${a.ambulance_name}</td>
         <td>${a.plate_number}</td>
         <td>${a.driver_name || '<span style="color:var(--text-muted);">Unassigned</span>'}</td>

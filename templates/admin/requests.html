@@ -87,7 +87,7 @@
           <table>
             <thead>
               <tr>
-                <th>#</th><th>User</th><th>Ambulance</th><th>Status</th>
+                <th>No</th><th>User</th><th>Ambulance</th><th>Status</th>
                 <th>Distance</th><th>Cost (Tsh)</th><th>Date</th><th>Action</th>
               </tr>
             </thead>
@@ -203,7 +203,7 @@
       const color = STATUS_COLORS[r.status] || '#6b7280';
       return `
       <tr>
-        <td style="color:var(--text-muted);">#${r.id}</td>
+        <td style="color:var(--text-muted);">${r.id}</td>
         <td style="font-weight:600;">${r.user_name||'—'}</td>
         <td>${r.ambulance_name||'—'}</td>
         <td><span style="background:${color}22;color:${color};padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;">

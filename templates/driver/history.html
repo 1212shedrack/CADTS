@@ -58,7 +58,7 @@
         <div class="table-responsive">
           <table>
             <thead>
-              <tr><th>#</th><th>Patient</th><th>Status</th><th>Distance</th><th>Cost (Tsh)</th><th>Date</th></tr>
+              <tr><th>No</th><th>Patient</th><th>Status</th><th>Distance</th><th>Cost (Tsh)</th><th>Date</th></tr>
             </thead>
             <tbody id="trips-tbody">
               <tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text-muted);">Loading…</td></tr>
@@ -141,7 +141,7 @@
     tbody.innerHTML = list.map(r => {
       const color = STATUS_COLORS[r.status] || '#6b7280';
       return `<tr>
-        <td style="color:var(--text-muted);">#${r.id}</td>
+        <td style="color:var(--text-muted);">${r.id}</td>
         <td style="font-weight:600;">${r.user_name||'—'}</td>
         <td><span style="background:${color}22;color:${color};padding:2px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;">
           ${r.status.replace('_',' ')}

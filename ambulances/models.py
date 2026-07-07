@@ -1,5 +1,4 @@
 # ambulances/models.py
-# Ambulance model for CADTS
 
 from django.db import models
 from django.conf import settings
@@ -14,15 +13,15 @@ class Ambulance(models.Model):
     """
 
     class Status(models.TextChoices):
-        AVAILABLE   = "available",    "Available"
-        BUSY        = "busy",         "Busy"
-        OFFLINE     = "offline",      "Offline"
+        AVAILABLE = "available",  "Available"
+        BUSY = "busy",  "Busy"
+        OFFLINE = "offline",  "Offline"
         MAINTENANCE = "maintenance",  "Maintenance"
 
-    plate_number   = models.CharField(max_length=20, unique=True)
+    plate_number = models.CharField(max_length=20, unique=True)
     ambulance_name = models.CharField(max_length=100)
 
-    driver         = models.OneToOneField(
+    driver = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True, blank=True,
@@ -30,22 +29,26 @@ class Ambulance(models.Model):
         limit_choices_to={"role": "driver"},
     )
 
-    latitude       = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude      = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    latitude = models.DecimalField(max_digits=9,
+                                   decimal_places=6,
+                                   null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9,
+                                    decimal_places=6,
+                                    null=True, blank=True)
 
-    status         = models.CharField(
+    status = models.CharField(
         max_length=15,
         choices=Status.choices,
         default=Status.OFFLINE,
     )
 
-    created_at     = models.DateTimeField(auto_now_add=True)
-    updated_at     = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table     = "cadts_ambulances"
+        db_table = "cadts_ambulances"
         verbose_name = "Ambulance"
-        ordering     = ["-created_at"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.ambulance_name} ({self.plate_number}) — {self.status}"

@@ -8,9 +8,8 @@ class DriverChoiceSerializer(serializers.ModelSerializer):
     """Light serializer for listing available drivers in dropdown."""
 
     class Meta:
-        model  = CustomUser
+        model = CustomUser
         fields = ["id", "full_name", "email"]
-
 
 
 class AmbulanceSerializer(serializers.ModelSerializer):
@@ -18,7 +17,7 @@ class AmbulanceSerializer(serializers.ModelSerializer):
     driver_info = DriverChoiceSerializer(source='driver', read_only=True)
 
     class Meta:
-        model  = Ambulance
+        model = Ambulance
         fields = [
             "id", "plate_number", "ambulance_name",
             "driver", "driver_name", "driver_info",
@@ -30,7 +29,6 @@ class AmbulanceSerializer(serializers.ModelSerializer):
     def get_driver_name(self, obj):
         """Return driver's full name or 'Unassigned'."""
         return obj.driver.full_name if obj.driver else "Unassigned"
-
 
     def validate_driver(self, value):
         """Ensure a driver is not assigned to two ambulances."""
@@ -47,7 +45,7 @@ class AmbulanceSerializer(serializers.ModelSerializer):
 
 class AmbulanceCreateSerializer(serializers.ModelSerializer):
     class Meta:
-        model  = Ambulance
+        model = Ambulance
         fields = ["plate_number", "ambulance_name", "driver", "status"]
 
     def validate_driver(self, value):
