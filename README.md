@@ -19,12 +19,14 @@ CADTS (Centralized Ambulance Dispatch & Tracking System) is a modern, real-time 
 To run this application locally, ensure your computer meets the following requirements:
 
 ### Prerequisites
+
 * **Operating System:** Windows, macOS, or Linux.
 * **Python:** Version `3.10` or higher.
 * **Database:** MySQL Server version `8.0` or higher.
 * **Web Browser:** Modern browser (Chrome, Safari, Firefox, Edge) with Geolocation permissions enabled.
 
 ### Backend Python Packages (Specified in `requirements.txt`)
+
 * `Django==6.0.6` (Core Web Framework)
 * `djangorestframework==3.17.1` & `djangorestframework-simplejwt==5.5.1` (REST API & Token Auth)
 * `mysqlclient==2.2.8` & `mysql-connector-python` (MySQL Database Drivers)
@@ -38,6 +40,7 @@ To run this application locally, ensure your computer meets the following requir
 Follow these steps to set up the system on your machine:
 
 ### 1. Set Up Virtual Environment & Dependencies
+
 Open PowerShell or your preferred terminal inside the project directory (`C:\Users\SHEDRACK\OneDrive\Desktop\CADTS`) and run:
 
 ```powershell
@@ -52,11 +55,17 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configure the MySQL Database
+
 1. Open your MySQL client (Command Line, Workbench, or phpMyAdmin) and create a database named `cadts_db`:
+
    ```sql
+
    CREATE DATABASE cadts_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
-2. Double check your settings in `ambulance_system/settings.py` under `DATABASES`. Ensure the `USER` and `PASSWORD` match your local MySQL configuration:
+
+2. Double check your settings in `ambulance_system/settings.py` under `DATABASES`. Ensure the `USER`
+
+and `PASSWORD` match your local MySQL configuration:
+
    ```python
    DATABASES = {
        "default": {
@@ -72,14 +81,19 @@ pip install -r requirements.txt
    ```
 
 ### 3. Run Database Migrations
+
 Run the migrations to create the database tables:
+
 ```powershell
 python manage.py migrate
 ```
 
 ### 4. Default Credentials (Superuser)
+
 You can access the admin panel (`/admin/` or dashboard admin panel) using the following credentials:
+
 * **Username / Email:** `admin@cadts.com`
+
 * **Password:** `Admin@123`
 
 ---
@@ -87,10 +101,14 @@ You can access the admin panel (`/admin/` or dashboard admin panel) using the fo
 ## 🚦 Running the System
 
 ### Standard Local Execution
+
 To run the server locally on your PC:
+
 ```powershell
 python manage.py runserver 0.0.0.0:8000
+
 ```
+
 Open **`http://127.0.0.1:8000/`** in your browser.
 
 ---
@@ -102,16 +120,26 @@ Modern browsers restrict Geolocation (GPS) APIs to secure environments (`localho
 1. Download **ngrok** from [ngrok.com](https://ngrok.com/download) and place `ngrok.exe` in your project folder.
 2. Sign up for a free ngrok account and copy your Authtoken.
 3. Authenticate ngrok in terminal:
+
    ```powershell
+
    .\ngrok.exe config add-authtoken <YOUR_TOKEN>
+
    ```
+
 4. Start your Django server:
+
    ```powershell
    python manage.py runserver 0.0.0.0:8000
+
    ```
+
 5. In another terminal window, start the ngrok tunnel:
+
    ```powershell
    .\ngrok.exe http 8000
+
    ```
+
 6. Copy the secure **`https://...`** URL from the ngrok output.
 7. Open that `https://` link on your phone. Because it uses HTTPS, your phone's browser will allow GPS access and map tracking will work flawlessly!

@@ -1,3 +1,5 @@
+import os
+import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 
@@ -5,10 +7,10 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY
-SECRET_KEY = "django-insecure-cadts-**2byn6b*av"
-"_!jub^t&1o^k&ujxqf(e98+f91@7^(x8pmcj6yz"
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+SECRET_KEY = os.environ.get('SECRET_KEY', "django-insecure-cadts-**2byn6b*av_!jub^t&1o^k&ujxqf(e98+f91@7^(x8pmcj6yz")
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 
 # INSTALLED APPS
@@ -42,6 +44,7 @@ INSTALLED_APPS = [
 # MIDDLEWARE
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",     # Static files in production
     "corsheaders.middleware.CorsMiddleware",          # CORS – must be high up
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -76,7 +79,8 @@ TEMPLATES = [
 ]
 
 
-# DATABASE – MySQL
+# DATABASE
+# Read DATABASE_URL from environment for production (Render), fallback to local MySQL
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
@@ -91,6 +95,12 @@ DATABASES = {
         },
     }
 }
+
+if "DATABASE_URL" in os.environ:
+    DATABASES["default"] = dj_database_url.config(
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 
 # CUSTOM USER MODEL
 AUTH_USER_MODEL = "accounts.CustomUser"
@@ -120,6 +130,9 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Enable WhiteNoise compression and caching
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
