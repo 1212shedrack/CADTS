@@ -48,11 +48,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
                             default=Role.USER)
 
     # Location (updated in real-time for drivers)
-    latitude = models.DecimalField(max_digits=9,
-                                   decimal_places=6,
+    latitude = models.DecimalField(max_digits=20,
+                                   decimal_places=10,
                                    null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9,
-                                    decimal_places=6,
+    longitude = models.DecimalField(max_digits=20,
+                                    decimal_places=10,
                                     null=True, blank=True)
 
     # Status flags

@@ -30,11 +30,11 @@ class Request(models.Model):
         null=True, blank=True,
         related_name="requests",
     )
-    pickup_latitude = models.DecimalField(max_digits=9,
-                                          decimal_places=6,
+    pickup_latitude = models.DecimalField(max_digits=20,
+                                          decimal_places=10,
                                           null=True, blank=True)
-    pickup_longitude = models.DecimalField(max_digits=9,
-                                           decimal_places=6,
+    pickup_longitude = models.DecimalField(max_digits=20,
+                                           decimal_places=10,
                                            null=True, blank=True)
     destination_hospital = models.CharField(max_length=255,
                                             blank=True)

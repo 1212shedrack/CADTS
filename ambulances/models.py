@@ -29,11 +29,11 @@ class Ambulance(models.Model):
         limit_choices_to={"role": "driver"},
     )
 
-    latitude = models.DecimalField(max_digits=9,
-                                   decimal_places=6,
+    latitude = models.DecimalField(max_digits=20,
+                                   decimal_places=10,
                                    null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9,
-                                    decimal_places=6,
+    longitude = models.DecimalField(max_digits=20,
+                                    decimal_places=10,
                                     null=True, blank=True)
 
     status = models.CharField(
