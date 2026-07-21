@@ -5,8 +5,9 @@ django==6.0.6
 djangorestframework==3.17.1
 
 # Database
-mysqlclient==2.2.8
-mysql-connector-python
+# (MySQL is used for local dev only, so we remove mysqlclient here to avoid Render build errors)
+# mysqlclient==2.2.8
+# mysql-connector-python
 
 # Authentication
 djangorestframework-simplejwt==5.5.1
